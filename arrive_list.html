@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Lists (Import/Export JSON + Google Calendar)</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f8fafc; }
+    h2 { margin-top: 0; }
+    textarea { width: 100%; height: 200px; padding: 10px; font-size: 1rem; margin-bottom: 10px; box-sizing: border-box; }
+    button { padding: 6px 12px; font-size: 0.9rem; border: none; border-radius: 4px; background: #0066cc; color: #fff; cursor: pointer; margin: 4px; }
+    button:hover { background: #004d99; }
+    .danger { background: #cc0000 !important; }
+    .calendar-btn { background: #28a745; }
+    .calendar-btn:hover { background: #1e7e34; }
+    .list { margin-top: 20px; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow-x: auto; }
+    .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .list h3 { margin: 0; font-size: 1rem; background: #444; color: #fff; padding: 5px 10px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; box-sizing: border-box; }
+    .header-buttons button { margin-left: 4px; }
+    .item { display: grid; grid-template-columns: 1fr 120px 120px auto 1fr; align-items: center; gap: 8px; margin: 8px 0; }
+    .checkbox-label { display: flex; align-items: center; gap: 4px; font-size: 0.9rem; }
+    .controls { display: contents; }
+    .controls .group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .controls input[type="text"] { padding: 4px; border: 1px solid #ccc; border-radius: 4px; width: 100%; min-width: 100px; }
+    .cat-快樂 { color: green; font-weight: bold; }
+    .cat-近初 { color: blue; font-weight: bold; }
+    .cat-初 { color: orange; font-weight: bold; }
+    .cat-初中 { color: purple; font-weight: bold; }
+    .categories-hidden { display: none !important; }
+    @media (max-width: 600px) {
+      .item { grid-template-columns: 1fr 1fr; grid-template-areas: "text text" "payment arrive" "categories categories" "remark remark"; }
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Add New Events</h2>
+  <textarea id="inputText" placeholder="Paste events here...&#10;Multiple events will be split automatically"></textarea><br>
+  <button onclick="addList()">Add Event(s)</button>
+  <button onclick="clearAll()">Clear All</button>
+  <button onclick="toggleCategories()">Toggle Categories</button>
+  <button onclick="exportJSON()">Export JSON</button>
+  <button onclick="document.getElementById('importFile').click()">Import JSON</button>
+  <button onclick="importJSONPrompt()">Import from Paste</button>
+  <button onclick="copyJSON()">Copy JSON</button>
+  <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importJSONFile(event)">
+
+  <div id="listsContainer"></div>
+
+  <script>
+    let savedLists = JSON.parse(localStorage.getItem("savedLists") || "[]");
+    let categoriesVisible = true;
+
+    const categories = [
+      { key: "快樂", class: "cat-快樂" },
+      { key: "近初", class: "cat-近初" },
+      { key: "初", class: "cat-初" },
+      { key: "初中", class: "cat-初中" },
+    ];
+
+    function renderLists() {
+      const container = document.getElementById("listsContainer");
+      container.innerHTML = "";
+
+      savedLists.forEach((list, listIndex) => {
+        const listDiv = document.createElement("div");
+        listDiv.className = "list";
+
+        // Header
+        const headerDiv = document.createElement("div");
+        headerDiv.className = "list-header";
+        const header = document.createElement("h3");
+        header.textContent = list.header;
+        const btns = document.createElement("div");
+        btns.className = "header-buttons";
+
+        const upBtn = document.createElement("button");
+        upBtn.textContent = "▲";
+        upBtn.disabled = listIndex === 0;
+        upBtn.onclick = () => moveEvent(listIndex, -1);
+
+        const downBtn = document.createElement("button");
+        downBtn.textContent = "▼";
+        downBtn.disabled = listIndex === savedLists.length - 1;
+        downBtn.onclick = () => moveEvent(listIndex, 1);
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.className = "danger";
+        delBtn.onclick = () => {
+          if (confirm("Delete this event?")) {
+            savedLists.splice(listIndex, 1);
+            save();
+            renderLists();
+          }
+        };
+
+        const calBtn = document.createElement("button");
+        calBtn.textContent = "Add to Calendar";
+        calBtn.className = "calendar-btn";
+        calBtn.onclick = () => addToGoogleCalendar(list.header);
+
+        btns.append(upBtn, downBtn, delBtn, calBtn);
+        headerDiv.append(header, btns);
+        listDiv.appendChild(headerDiv);
+
+        // Items
+        list.items.forEach(item => {
+          const div = document.createElement("div");
+          div.className = "item";
+          const label = document.createElement("label");
+          label.textContent = item.text;
+          div.appendChild(label);
+
+          const controls = document.createElement("div");
+          controls.className = "controls";
+
+          // Payment
+          const payWrapper = document.createElement("label");
+          payWrapper.className = "checkbox-label";
+          const payBox = document.createElement("input");
+          payBox.type = "checkbox";
+          payBox.checked = item.payment || false;
+          payBox.onchange = () => { item.payment = payBox.checked; save(); };
+          payWrapper.append(payBox, document.createTextNode("Payment"));
+          controls.appendChild(payWrapper);
+
+          // Arrive
+          const arriveWrapper = document.createElement("label");
+          arriveWrapper.className = "checkbox-label";
+          const arriveBox = document.createElement("input");
+          arriveBox.type = "checkbox";
+          arriveBox.checked = item.arrive || false;
+          arriveBox.onchange = () => { item.arrive = arriveBox.checked; save(); };
+          arriveWrapper.append(arriveBox, document.createTextNode("Arrive"));
+          controls.appendChild(arriveWrapper);
+
+          // Categories
+          if (!item.categories) item.categories = {};
+          const groupDiv = document.createElement("div");
+          groupDiv.className = "group categories-col";
+          if (!categoriesVisible) groupDiv.classList.add("categories-hidden");
+          categories.forEach(cat => {
+            const wrap = document.createElement("label");
+            wrap.style.display = "flex";
+            wrap.style.alignItems = "center";
+            const catBox = document.createElement("input");
+            catBox.type = "checkbox";
+            catBox.checked = item.categories[cat.key] || false;
+            catBox.onchange = () => { item.categories[cat.key] = catBox.checked; save(); };
+            const span = document.createElement("span");
+            span.textContent = cat.key;
+            if (cat.class) span.className = cat.class;
+            wrap.append(catBox, span);
+            groupDiv.appendChild(wrap);
+          });
+          controls.appendChild(groupDiv);
+
+          // Remark
+          const remarkInput = document.createElement("input");
+          remarkInput.type = "text";
+          remarkInput.placeholder = "Remark";
+          remarkInput.value = item.remark || "";
+          remarkInput.oninput = () => { item.remark = remarkInput.value; save(); };
+          controls.appendChild(remarkInput);
+
+          div.appendChild(controls);
+          listDiv.appendChild(div);
+        });
+
+        container.appendChild(listDiv);
+      });
+    }
+
+    function addList() {
+      const input = document.getElementById("inputText").value.trim();
+      if (!input) return;
+      const blocks = input.split(/\n\s*\n/);
+      blocks.forEach(block => {
+        const lines = block.split(/\r?\n/).filter(l => l.trim() !== "");
+        if (lines.length < 2) return;
+        let firstNumIndex = lines.findIndex(line => /^\s*1[\.\s]/.test(line));
+        if (firstNumIndex === -1) return;
+        const header = lines.slice(0, firstNumIndex).join(" ").replace(/\s+/g, " ").trim();
+        const items = [];
+        lines.slice(firstNumIndex).forEach(line => {
+          const match = line.match(/^\s*\d+\.*\s*(.+)$/);
+          if (match) items.push({ text: match[1].trim(), payment: false, arrive: false, remark: "", categories: {} });
+        });
+        if (items.length > 0) savedLists.push({ header, items });
+      });
+      save();
+      document.getElementById("inputText").value = "";
+      renderLists();
+    }
+
+    function moveEvent(index, dir) {
+      const newIndex = index + dir;
+      if (newIndex < 0 || newIndex >= savedLists.length) return;
+      const [moved] = savedLists.splice(index, 1);
+      savedLists.splice(newIndex, 0, moved);
+      save(); renderLists();
+    }
+
+    function clearAll() {
+      if (confirm("Clear all saved events?")) {
+        savedLists = []; localStorage.removeItem("savedLists"); renderLists();
+      }
+    }
+
+    function save() {
+      localStorage.setItem("savedLists", JSON.stringify(savedLists));
+    }
+
+    function toggleCategories() {
+      categoriesVisible = !categoriesVisible;
+      renderLists();
+    }
+
+    // EXPORT JSON
+    function exportJSON() {
+      const dataStr = JSON.stringify(savedLists, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "events.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // IMPORT JSON (file)
+    function importJSONFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (Array.isArray(data)) {
+            savedLists = data;
+            save();
+            renderLists();
+            alert("✅ Events imported successfully!");
+          } else {
+            alert("⚠️ Invalid JSON format (must be an array).");
+          }
+        } catch (err) {
+          alert("⚠️ Error parsing JSON: " + err);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // IMPORT JSON (paste)
+    function importJSONPrompt() {
+      const input = prompt("Paste your JSON here:");
+      if (!input) return;
+      try {
+        const data = JSON.parse(input);
+        if (Array.isArray(data)) {
+          savedLists = data;
+          save();
+          renderLists();
+          alert("✅ Events imported successfully!");
+        } else {
+          alert("⚠️ Invalid JSON format (must be an array).");
+        }
+      } catch (err) {
+        alert("⚠️ Error parsing JSON: " + err);
+      }
+    }
+
+    // COPY JSON to clipboard
+    function copyJSON() {
+      const dataStr = JSON.stringify(savedLists, null, 2);
+      navigator.clipboard.writeText(dataStr)
+        .then(() => alert("✅ JSON copied to clipboard!"))
+        .catch(err => alert("⚠️ Failed to copy: " + err));
+    }
+
+    // Google Calendar link builder
+    function addToGoogleCalendar(headerText) {
+      const now = new Date();
+      const year = now.getFullYear();
+
+      // Date
+      const dateMatch = headerText.match(/(\d{1,2})月(\d{1,2})日/);
+      if (!dateMatch) {
+        alert("⚠️ 無法解析日期，請手動輸入到 Google Calendar");
+        return;
+      }
+      const month = parseInt(dateMatch[1], 10);
+      const day = parseInt(dateMatch[2], 10);
+
+      // Time
+      const timeMatch = headerText.match(/(\d{1,2})(?:-(\d{1,2}))?(am|pm)/i);
+      let startHour = 10, endHour = 11;
+      if (timeMatch) {
+        startHour = parseInt(timeMatch[1], 10);
+        endHour = timeMatch[2] ? parseInt(timeMatch[2], 10) : startHour + 1;
+        const suffix = timeMatch[3].toLowerCase();
+        if (suffix === "pm" && startHour < 12) startHour += 12;
+        if (suffix === "pm" && endHour < 12) endHour += 12;
+        if (suffix === "am" && startHour === 12) startHour = 0;
+        if (suffix === "am" && endHour === 12) endHour = 0;
+      }
+
+      const startDate = new Date(year, month - 1, day, startHour, 0);
+      const endDate = new Date(year, month - 1, day, endHour, 0);
+
+      function fmtDate(d) {
+        return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+      }
+      const startStr = fmtDate(startDate);
+      const endStr = fmtDate(endDate);
+
+      // Clean title
+      let title = headerText;
+      title = title.replace(/\d{1,2}月\d{1,2}日.*?(am|pm)/i, "");
+      title = title.replace(/\$\s*\d+/, "");
+      title = title.replace(/體育館/, "");
+      title = title.replace(/🈵🈵/, "");
+      title = title.replace(/🈶🈶/, "");
+      title = title.trim();
+
+      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startStr}/${endStr}`;
+      window.open(url, "_blank");
+    }
+
+    window.addEventListener("load", renderLists);
+  </script>
+
+</body>
+</html>
