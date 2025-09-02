@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Lists (Layout + Editable Calc)</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 0; 
+      padding: 20px; 
+      background: #f8fafc; 
+    }
+    h2 { margin-top: 0; }
+    textarea { 
+      width: 100%; 
+      height: 200px; 
+      padding: 10px; 
+      font-size: 1rem; 
+      margin-bottom: 10px; 
+      box-sizing: border-box; 
+    }
+    button { 
+      padding: 6px 12px; 
+      font-size: 0.9rem; 
+      border: none; 
+      border-radius: 4px; 
+      background: #0066cc; 
+      color: #fff; 
+      cursor: pointer; 
+      margin: 4px; 
+    }
+    button:hover { background: #004d99; }
+    .danger { background: #cc0000 !important; }
+    .calendar-btn { background: #28a745; }
+    .calendar-btn:hover { background: #1e7e34; }
+    .list { 
+      margin-top: 20px; 
+      padding: 15px; 
+      background: #fff; 
+      border: 1px solid #ddd; 
+      border-radius: 6px; 
+    }
+    .list-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 10px; 
+      flex-wrap: wrap; 
+    }
+    .list h3 { 
+      margin: 0; 
+      font-size: 1rem; 
+      background: #444; 
+      color: #fff; 
+      padding: 5px 10px; 
+      border-radius: 4px; 
+      white-space:nowrap; 
+    }
+    .header-buttons button { margin-left: 4px; }
+    .event-wrapper { display:flex; gap:10px; }
+    .event-content { flex:3; }
+    .calc-panel { 
+      flex:1; 
+      padding:10px; 
+      border:1px dashed #888; 
+      background:#f0f8ff; 
+      border-radius:4px; 
+    }
+    .calc-panel input { width:70px; padding:4px; margin:3px; }
+    .calc-hidden { display:none; }
+    .item { 
+      display: grid; 
+      grid-template-columns: auto 1fr auto auto auto; 
+      gap: 8px; 
+      margin: 8px 0; 
+      align-items: center; 
+    }
+    .item-number { 
+      font-weight:bold; 
+      min-width: 20px; 
+      text-align:right; 
+    }
+    .checkbox-label { 
+      display: flex; 
+      align-items: center; 
+      gap: 4px; 
+      font-size: 0.9rem; 
+    }
+    .controls { display: contents; }
+    .controls .group { 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 6px; 
+      align-items:center; 
+      flex:1 1 100%; 
+    }
+    .controls input[type="text"] { 
+      padding: 4px; 
+      border: 1px solid #ccc; 
+      border-radius: 4px; 
+      min-width: 100px; 
+    }
+    .item-text { 
+      flex:1; 
+      padding:4px; 
+      border:1px solid #ccc; 
+      border-radius:4px; 
+    }
+    .cat-快樂 { color: green; font-weight: bold; }
+    .cat-近初 { color: blue; font-weight: bold; }
+    .cat-初 { color: orange; font-weight: bold; }
+    .cat-初中 { color: purple; font-weight: bold; }
+    .categories-hidden { display: none !important; }
+    /* Filter styling */
+    .filter-box { 
+      margin:20px 0; 
+      padding:10px; 
+      background:#fff; 
+      border:1px solid #ccc; 
+      border-radius:6px; 
+      display:inline-block; 
+    }
+    .filter-box select { 
+      padding:6px; 
+      border-radius:4px; 
+      border:1px solid #aaa; 
+      background:#f0f0f0; 
+    }
+    .month-summary { 
+      margin-top: 10px; 
+      font-weight: bold; 
+      color:#333; 
+      background:#eef; 
+      padding:6px; 
+      border-radius:4px; 
+    }
+    .header-快樂 { background: #006400 !important; }
+    
+    /* Mobile responsive styles */
+    @media (max-width: 800px) {
+      .event-wrapper { flex-direction:column; }
+      .calc-panel { width:100%; }
+      .controls .group { flex-wrap:wrap; }
+    }
+    
+    @media (max-width: 600px) {
+      .categories-col {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        width: 100%;
+      }
+      .categories-col label {
+        margin: 2px 0;
+        flex: 1;
+        min-width: 80px;
+      }
+      .item {
+        grid-template-columns: auto 1fr;
+        gap: 6px;
+      }
+      .item-number {
+        grid-column: 1;
+      }
+      .item-text {
+        grid-column: 2;
+      }
+      .controls {
+        grid-column: 1 / span 2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .checkbox-label {
+        flex: 1;
+        min-width: 80px;
+      }
+      .filter-box {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .filter-box label {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Add New Events</h2>
+  <textarea id="inputText" placeholder="Paste events here..."></textarea><br>
+  <button onclick="addList()">Add Event(s)</button>
+  <button onclick="clearAll()">Clear All</button>
+  <button onclick="toggleCategories()">Toggle Categories</button>
+  <button onclick="toggleCalc()">Hide Calculation</button>
+  <button onclick="exportJSON()">Export JSON</button>
+  <button onclick="document.getElementById('importFile').click()">Import JSON</button>
+  <button onclick="importJSONPrompt()">Import from Paste</button>
+  <button onclick="copyJSON()">Copy JSON</button>
+  <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importJSONFile(event)">
+
+  <div class="filter-box">
+    <label>🔍 Search Name: 
+      <input type="text" id="nameSearch" placeholder="Enter name..." oninput="renderLists()">
+    </label>
+    <label>📅 Filter Month: 
+      <select id="monthFilter" onchange="renderLists()">
+        <option value="">All</option>
+      </select>
+    </label>
+    <label>📍 Filter Location: 
+      <select id="locationFilter" onchange="renderLists()">
+        <option value="">All</option>
+      </select>
+      <button onclick="deleteLocation()">❌ Delete Selected</button>
+    </label>
+    <label>
+      <input type="checkbox" id="futureEventsOnly" onchange="renderLists()"> Show Future Events Only
+    </label>
+  </div>
+
+  <div id="listsContainer"></div>
+
+  <script>
+    let savedLists = JSON.parse(localStorage.getItem("savedLists") || "[]");
+    let categoriesVisible = true;
+    let calcVisible = true;
+    let savedLocations = JSON.parse(localStorage.getItem("savedLocations") || "[]");
+
+    const categories = [
+      { key: "快樂", class: "cat-快樂" },
+      { key: "近初", class: "cat-近初" },
+      { key: "初", class: "cat-初" },
+      { key: "初中", class: "cat-初中" },
+    ];
+
+    function renderLists() {
+      const container = document.getElementById("listsContainer");
+      container.innerHTML = "";
+
+      populateMonthFilter();
+      populateLocationFilter();
+
+      const selectedMonth = document.getElementById("monthFilter").value;
+      const selectedLoc = document.getElementById("locationFilter").value;
+      const searchName = document.getElementById("nameSearch").value.toLowerCase();
+      const futureOnly = document.getElementById("futureEventsOnly").checked;
+
+      savedLists.sort((a,b)=>parseHeaderDate(a.header)-parseHeaderDate(b.header));
+
+      let currentMonth=null;
+      let monthTotal=0;
+
+      savedLists.forEach((list, listIndex) => {
+        const listMonth=(list.header.match(/(\d{1,2})月/)||[])[1];
+        
+        // Apply filters
+        if (selectedMonth && listMonth!==selectedMonth) return;
+        if (selectedLoc && !list.header.includes(selectedLoc)) return;
+        if (futureOnly && parseHeaderDate(list.header) < new Date()) return;
+        
+        // Search filter
+        if (searchName) {
+          const hasName = list.items.some(item => 
+            item.text.toLowerCase().includes(searchName)
+          );
+          if (!hasName) return;
+        }
+
+        if(currentMonth && currentMonth!==listMonth){
+          const summary=document.createElement("div");
+          summary.className="month-summary";
+          summary.textContent=`${currentMonth}月 總淨利: 💰${monthTotal}`;
+          container.appendChild(summary);
+          monthTotal=0;
+        }
+        currentMonth=listMonth;
+
+        const listDiv = document.createElement("div");
+        listDiv.className = "list";
+
+        // Header
+        const headerDiv = document.createElement("div");
+        headerDiv.className = "list-header";
+        const header = document.createElement("h3");
+        header.textContent = list.header;
+        
+        // Apply dark green color if header contains "快樂"
+        if (list.header.includes("快樂")) {
+          header.classList.add("header-快樂");
+        }
+        
+        const btns = document.createElement("div");
+        btns.className = "header-buttons";
+
+        const upBtn = document.createElement("button");
+        upBtn.textContent = "▲";
+        upBtn.disabled = listIndex === 0;
+        upBtn.onclick = () => moveEvent(listIndex, -1);
+
+        const downBtn = document.createElement("button");
+        downBtn.textContent = "▼";
+        downBtn.disabled = listIndex === savedLists.length - 1;
+        downBtn.onclick = () => moveEvent(listIndex, 1);
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.className = "danger";
+        delBtn.onclick = () => {
+          if (confirm("Delete this event?")) {
+            savedLists.splice(listIndex, 1);
+            save(); renderLists();
+          }
+        };
+
+        const calBtn = document.createElement("button");
+        calBtn.textContent = "Add to Calendar";
+        calBtn.className = "calendar-btn";
+        calBtn.onclick = () => addToGoogleCalendar(list.header, list.items);
+
+        const addRowBtn = document.createElement("button");
+        addRowBtn.textContent = "Add Row";
+        addRowBtn.className = "add-row-btn";
+        addRowBtn.onclick = () => {
+          list.items.push({ text:"", payment:false, arrive:false, remark:"", categories:{} });
+          save(); renderLists();
+        };
+
+        btns.append(upBtn, downBtn, delBtn, calBtn, addRowBtn);
+        headerDiv.append(header, btns);
+        listDiv.appendChild(headerDiv);
+
+        // Wrapper
+        const wrapper=document.createElement("div");
+        wrapper.className="event-wrapper";
+
+        // Event content
+        const contentDiv=document.createElement("div");
+        contentDiv.className="event-content";
+
+        list.items.forEach((item, itemIndex) => {
+          const div = document.createElement("div");
+          div.className = "item";
+
+          const numSpan=document.createElement("span");
+          numSpan.className="item-number";
+          numSpan.textContent=(itemIndex+1)+".";
+          div.appendChild(numSpan);
+
+          const textInput=document.createElement("input");
+          textInput.type="text";
+          textInput.className="item-text";
+          textInput.value=item.text;
+          textInput.placeholder="Name";
+          textInput.oninput=()=>{ item.text=textInput.value; save(); };
+          div.appendChild(textInput);
+
+          const controls = document.createElement("div");
+          controls.className = "controls";
+
+          const arriveWrapper = document.createElement("label");
+          arriveWrapper.className = "checkbox-label";
+          const arriveBox = document.createElement("input");
+          arriveBox.type = "checkbox";
+          arriveBox.checked = item.arrive || false;
+          arriveBox.onchange = () => { item.arrive = arriveBox.checked; save(); };
+          arriveWrapper.append(arriveBox, document.createTextNode("Arrive"));
+          controls.appendChild(arriveWrapper);
+
+          const payWrapper = document.createElement("label");
+          payWrapper.className = "checkbox-label";
+          const payBox = document.createElement("input");
+          payBox.type = "checkbox";
+          payBox.checked = item.payment || false;
+          payBox.onchange = () => { item.payment = payBox.checked; save(); };
+          payWrapper.append(payBox, document.createTextNode("Payment"));
+          controls.appendChild(payWrapper);
+
+          if (!item.categories) item.categories = {};
+          const groupDiv = document.createElement("div");
+          groupDiv.className = "group categories-col";
+          if (!categoriesVisible) groupDiv.classList.add("categories-hidden");
+          categories.forEach(cat => {
+            const wrap = document.createElement("label");
+            wrap.style.display="flex"; 
+            wrap.style.alignItems="center";
+            wrap.style.flexWrap = "nowrap";
+            const catBox = document.createElement("input");
+            catBox.type="checkbox";
+            catBox.checked=item.categories[cat.key]||false;
+            catBox.onchange=()=>{ item.categories[cat.key]=catBox.checked; save(); };
+            const span=document.createElement("span");
+            span.textContent=cat.key; 
+            if(cat.class) span.className=cat.class;
+            wrap.append(catBox,span); 
+            groupDiv.appendChild(wrap);
+          });
+
+          const remarkInput=document.createElement("input");
+          remarkInput.type="text"; 
+          remarkInput.placeholder="Remark";
+          remarkInput.value=item.remark||"";
+          remarkInput.oninput=()=>{ item.remark=remarkInput.value; save(); };
+
+          const removeBtn=document.createElement("button");
+          removeBtn.textContent="✖";
+          removeBtn.className="danger";
+          removeBtn.onclick=()=>{
+            list.items.splice(itemIndex,1);
+            save(); renderLists();
+          };
+
+          groupDiv.appendChild(remarkInput);
+          groupDiv.appendChild(removeBtn);
+
+          controls.appendChild(groupDiv);
+
+          div.appendChild(controls);
+          contentDiv.appendChild(div);
+        });
+
+        // Calc panel
+        const calcPanel=document.createElement("div");
+        calcPanel.className="calc-panel";
+        if(!calcVisible) calcPanel.classList.add("calc-hidden");
+
+        const priceInput=document.createElement("input");
+        priceInput.type="number"; priceInput.placeholder="Price";
+        priceInput.value=list.price||extractPrice(list.header);
+        priceInput.oninput=()=>{ list.price=parseInt(priceInput.value)||0; save(); renderLists(); };
+
+        const personInput=document.createElement("input");
+        personInput.type="number"; personInput.min="1"; 
+        personInput.value=list.persons||guessPersons(list.header);
+        personInput.oninput=()=>{ list.persons=parseInt(personInput.value)||6; save(); renderLists(); };
+
+        const hoursInput=document.createElement("input");
+        hoursInput.type="number"; hoursInput.min="1"; hoursInput.value=list.hours||extractHours(list.header);
+        hoursInput.oninput=()=>{ list.hours=parseInt(hoursInput.value)||1; save(); renderLists(); };
+
+        const courtInput=document.createElement("input");
+        courtInput.type="number"; courtInput.value=list.courtCost||calcCourt(list.header,hoursInput.value);
+        courtInput.oninput=()=>{ list.courtCost=parseInt(courtInput.value)||0; save(); renderLists(); };
+
+        const ballInput=document.createElement("input");
+        ballInput.type="number"; 
+        ballInput.value=list.ballCost||25*(list.hours||1);
+        ballInput.oninput=()=>{ list.ballCost=parseInt(ballInput.value)||0; save(); renderLists(); };
+
+        const resultDiv=document.createElement("div");
+        resultDiv.textContent="Result: -";
+
+        const price=parseInt(priceInput.value)||0;
+        const persons=parseInt(personInput.value)||6;
+        const hours=parseInt(hoursInput.value)||1;
+        const courtCost=parseInt(courtInput.value)||0;
+        const ballCost=25*hours;
+        ballInput.value=ballCost;
+        const result=price*persons-courtCost-ballCost;
+        resultDiv.textContent=`${price}×${persons} - 場地:${courtCost} - 球:${ballCost} = 💰${result}`;
+        list.net=result;
+        monthTotal+=result;
+
+        calcPanel.append("價錢:",priceInput," 人數:",personInput," 時數:",hoursInput," 場地:",courtInput," 球:",ballInput, resultDiv);
+
+        wrapper.appendChild(contentDiv);
+        wrapper.appendChild(calcPanel);
+        listDiv.appendChild(wrapper);
+
+        container.appendChild(listDiv);
+      });
+
+      if(currentMonth){
+        const summary=document.createElement("div");
+        summary.className="month-summary";
+        summary.textContent=`${currentMonth}月 總淨利: 💰${monthTotal}`;
+        container.appendChild(summary);
+      }
+    }
+
+    function extractPrice(header){ const m=header.match(/\$ ?(\d+)/); return m?parseInt(m[1],10):0; }
+
+    function extractHours(header){
+      const m=header.match(/(\d{1,2})(?:\s*[:：](\d{2}))?\s*-\s*(\d{1,2})(?:\s*[:：](\d{2}))?\s*(am|pm)?/i);
+      if(!m) return 1;
+      let start=parseInt(m[1]);
+      let end=parseInt(m[3]);
+      const ampm=m[5];
+      
+      // Handle 12-hour format with AM/PM
+      if(ampm) {
+        const isPM = ampm.toLowerCase() === 'pm';
+        if(isPM) {
+          if(start < 12) start += 12;
+          if(end < 12) end += 12;
+        } else {
+          if(start === 12) start = 0;
+          if(end === 12) end = 0;
+        }
+      }
+      
+      let dur=end-start;
+      if(dur<=0) dur+=12;
+      return dur;
+    }
+
+    function calcCourt(header,hours){ let per=59; if(/會所/.test(header)){ const dow=new Date().getDay(); per=(dow===0||dow===6)?85:75; } else if(/顥徑|恒安/.test(header)) per=39; return per*(hours||1); }
+
+    function guessPersons(header){
+      if(/Suki no/i.test(header)) return 7;
+      if(/Suki/i.test(header)) return 6;
+      return 6;
+    }
+
+    function parseHeaderDate(header){
+      const m=header.match(/(\d{1,2})月(\d{1,2})日.*?(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?/);
+      if(!m) return new Date(2099,11,31);
+      
+      const month=parseInt(m[1])-1;
+      const day=parseInt(m[2]);
+      let hour=parseInt(m[3]);
+      const minute = m[4] ? parseInt(m[4]) : 0;
+      
+      // Check if time is in PM (after 12pm but before midnight in 24h format)
+      if (hour < 12 && header.toLowerCase().includes('pm')) {
+        hour += 12;
+      }
+      
+      return new Date(new Date().getFullYear(), month, day, hour, minute);
+    }
+
+    function populateMonthFilter(){
+      const sel=document.getElementById("monthFilter");
+      const months=new Set();
+      savedLists.forEach(list=>{
+        const m=list.header.match(/(\d{1,2})月/);
+        if(m) months.add(m[1]);
+      });
+      const currentVal=sel.value;
+      sel.innerHTML='<option value="">All</option>';
+      [...months].sort((a,b)=>a-b).forEach(m=>{
+        const opt=document.createElement("option");
+        opt.value=m; opt.textContent=m+"月";
+        if(m===currentVal) opt.selected=true;
+        sel.appendChild(opt);
+      });
+    }
+
+    function populateLocationFilter(){
+      const sel=document.getElementById("locationFilter");
+      const locs=new Set(savedLocations);
+      savedLists.forEach(list=>{
+        const locMatch=list.header.match(/(會所|顥徑|恒安|圓洲角|馬安山|馬鞍山|車公廟|美林|源禾|長沙灣|保安道|北河街|單車館)/);
+        if(locMatch) locs.add(locMatch[1]);
+      });
+      savedLocations=[...locs];
+      localStorage.setItem("savedLocations",JSON.stringify(savedLocations));
+      const currentVal=sel.value;
+      sel.innerHTML='<option value="">All</option>';
+      savedLocations.forEach(l=>{
+        const opt=document.createElement("option");
+        opt.value=l; opt.textContent=l;
+        if(l===currentVal) opt.selected=true;
+        sel.appendChild(opt);
+      });
+    }
+
+    function deleteLocation(){
+      const sel=document.getElementById("locationFilter");
+      const val=sel.value;
+      if(!val) return;
+      if(confirm("Delete location filter '"+val+"'?")){
+        savedLocations=savedLocations.filter(l=>l!==val);
+        localStorage.setItem("savedLocations",JSON.stringify(savedLocations));
+        renderLists();
+      }
+    }
+ 
+
+    function addList(){
+      const input=document.getElementById("inputText").value.trim();
+      if(!input) return;
+      const blocks=input.split(/\n\s*\n/);
+      blocks.forEach(block=>{
+        const lines=block.split(/\r?\n/).map(l=>l.replace(/^•\s*/,"")).filter(l=>l.trim()!=="");
+        if(lines.length<2) return;
+        let firstNumIndex=lines.findIndex(line=>/^\s*1[\.\s]/.test(line));
+        if(firstNumIndex===-1) return;
+        const header=lines.slice(0,firstNumIndex).join(" ").replace(/\s+/g," ").trim();
+        const items=[];
+        lines.slice(firstNumIndex).forEach(line=>{
+          const match=line.match(/^\s*(\d+[\.\s]*)?(.+)$/);
+          if(match) items.push({ text:match[2].trim(), payment:false, arrive:false, remark:"", categories:{} });
+        });
+        if(items.length>0) savedLists.push({ header, items });
+      });
+      save(); document.getElementById("inputText").value=""; renderLists();
+    }
+
+    function moveEvent(i,d){ const ni=i+d; if(ni<0||ni>=savedLists.length) return; const[m]=savedLists.splice(i,1); savedLists.splice(ni,0,m); save(); renderLists(); }
+    function clearAll(){ if(confirm("Clear all saved events?")){ savedLists=[]; localStorage.removeItem("savedLists"); renderLists(); } }
+    function save(){ localStorage.setItem("savedLists",JSON.stringify(savedLists)); }
+    function toggleCategories(){ categoriesVisible=!categoriesVisible; renderLists(); }
+    function toggleCalc(){ calcVisible=!calcVisible; renderLists(); }
+
+    function exportJSON(){ const dataStr=JSON.stringify(savedLists,null,2); const blob=new Blob([dataStr],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="events.json"; a.click(); URL.revokeObjectURL(url); }
+    function importJSONFile(e){ const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=ev=>{ try{ const data=JSON.parse(ev.target.result); if(Array.isArray(data)){ savedLists=data; save(); renderLists(); alert("✅ Imported!"); } else alert("⚠️ Invalid JSON"); } catch(err){ alert("⚠️ Error:"+err); } }; reader.readAsText(file); }
+    function importJSONPrompt(){ const input=prompt("Paste JSON:"); if(!input) return; try{ const data=JSON.parse(input); if(Array.isArray(data)){ savedLists=data; save(); renderLists(); alert("✅ Imported!"); } else alert("⚠️ Invalid JSON"); } catch(err){ alert("⚠️ Error:"+err); } }
+    function copyJSON(){ const dataStr=JSON.stringify(savedLists,null,2); navigator.clipboard.writeText(dataStr).then(()=>alert("✅ Copied!")).catch(err=>alert("⚠️ Failed:"+err)); }
+
+    function addToGoogleCalendar(headerText, items) {
+      // Parse date and time from header
+      const dateMatch = headerText.match(/(\d{1,2})月(\d{1,2})日/);
+      if (!dateMatch) {
+        alert("無法從標題解析日期");
+        return;
+      }
+      
+      const month = parseInt(dateMatch[1]);
+      const day = parseInt(dateMatch[2]);
+      const year = new Date().getFullYear();
+      
+      // Parse time (handle both 12-hour and 24-hour formats)
+      const timeMatch = headerText.match(/(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?\s*(上午|下午|am|pm)?/i);
+      if (!timeMatch) {
+        alert("無法從標題解析時間");
+        return;
+      }
+      
+      let startHour = parseInt(timeMatch[1]);
+      const startMinute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+      let endHour = parseInt(timeMatch[3]);
+      const endMinute = timeMatch[4] ? parseInt(timeMatch[4]) : 0;
+      const period = timeMatch[5] || '';
+      
+      // Handle AM/PM format
+      if (period.toLowerCase().includes('下午') || period.toLowerCase() === 'pm') {
+        if (startHour < 12) startHour += 12;
+        if (endHour < 12) endHour += 12;
+      } else if (period.toLowerCase().includes('上午') || period.toLowerCase() === 'am') {
+        if (startHour === 12) startHour = 0;
+        if (endHour === 12) endHour = 0;
+      }
+      
+      // Create start and end dates
+      const startDate = new Date(year, month - 1, day, startHour, startMinute);
+      const endDate = new Date(year, month - 1, day, endHour, endMinute);
+      
+      // Format dates for Google Calendar URL
+      const formatDate = (date) => {
+        return date.toISOString().replace(/-|:|\.\d+/g, '');
+      };
+      
+    //   // Create event title - clean up the header text
+    //   const cleanTitle = cleanHeader(headerText);
+      
+      // Create event description with participants
+      let description = "參加者:\n";
+      items.forEach((item, index) => {
+        description += `${index + 1}. ${item.text}\n`;
+      });
+      
+       // Clean title
+      let title = headerText;
+      title = title.replace(/\d{1,2}月\d{1,2}日.*?(am|pm)/i, "");
+      title = title.replace(/\$\s*\d+/, "");
+      title = title.replace(/體育館/, "");
+      title = title.replace(/🈵🈵/, "");
+      title = title.replace(/🈶🈶/, "");
+      title = title.trim();
+
+      // Create Google Calendar URL
+      const baseUrl = "https://calendar.google.com/calendar/r/eventedit";
+      const params = new URLSearchParams({
+        text: title,
+        dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
+        details: description,
+        sf: true,
+        output: 'xml'
+      });
+      
+      // Open Google Calendar in new tab
+      window.open(`${baseUrl}?${params.toString()}`, '_blank');
+    }
+
+    window.addEventListener("load", renderLists);
+  </script>
+</body>
+</html>
