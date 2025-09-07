@@ -7,228 +7,851 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f8fafc; }
     .tab-bar {
-      display: flex; border-bottom: 2px solid #ccc; background: #f5f5f5; padding-left: 10px;
+      display: flex; 
+      border-bottom: 2px solid #ccc; 
+      background: #f5f5f5;
+      padding-left: 10px;
     }
-    .tab { padding: 14px 24px; cursor: pointer; border: none; background: none; font-size: 1.15rem; color: #555;
-      outline: none; border-bottom: 2px solid transparent; transition: background .2s, border-color .2s; }
-    .tab.active { color: #0066cc; border-bottom: 2px solid #0066cc; background: #fff; }
+    .tab {
+      padding: 14px 24px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 1.15rem;
+      color: #555;
+      outline: none;
+      border-bottom: 2px solid transparent;
+      transition: background .2s, border-color .2s;
+    }
+    .tab.active {
+      color: #0066cc;
+      border-bottom: 2px solid #0066cc;
+      background: #fff;
+    }
     .page { display: none; padding: 20px; }
     .page.active { display: block; }
-
-    /* General */
+    /* Event Page: (original) */
+    h2 { margin-top: 0; }
     textarea { width: 100%; height: 200px; padding: 10px; font-size: 1rem; margin-bottom: 10px; box-sizing: border-box; }
     button { padding: 6px 12px; font-size: 0.9rem; border: none; border-radius: 4px; background: #0066cc; color: #fff; cursor: pointer; margin: 4px; }
     button:hover { background: #004d99; }
-    .danger { background:#cc0000!important; }
-    .calendar-btn { background:#28a745; }
-    .calendar-btn:hover { background:#1e7e34; }
-    .modify-btn { background:#ff9900; }
-    .modify-btn:hover { background:#e68a00; }
-    .pink-btn { background:#ff66cc; }
+    .danger { background: #cc0000 !important; }
+    .calendar-btn { background: #28a745; }
+    .calendar-btn:hover { background: #1e7e34; }
+    .modify-btn { background: #ff9900; }
+    .modify-btn:hover { background: #e68a00; }
+     .pink-btn { background:#ff66cc; }
     .pink-btn:hover { background:#e055b4; }
-
-    /* Event page */
-    .list { margin-top:20px; padding:15px; background:#fff; border:1px solid #ddd; border-radius:6px; }
-    .list-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
-    .list h3 { margin:0; font-size:1rem; background:#444; color:#fff; padding:5px 10px; border-radius:4px; white-space:nowrap; }
-    .header-buttons button { margin-left:4px; }
-    .event-wrapper{display:flex;gap:10px;}
-    .event-content{flex:3;}
-    .calc-panel{flex:1;padding:10px;border:1px dashed #888;background:#f0f8ff;border-radius:4px;}
-    .calc-hidden{display:none;}
-    .item{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;margin:6px 0;}
-    .item-number{font-weight:bold;min-width:20px;text-align:right;}
-    .item-text{padding:4px;border:1px solid #ccc;border-radius:4px;flex:1;}
-    .checkbox-label{display:flex;align-items:center;gap:4px;}
-    .controls{display:flex;gap:6px;flex-wrap:wrap;}
-    .controls .group{display:flex;flex-wrap:wrap;gap:6px;}
-    .remark-input{padding:4px;border:1px solid #ccc;border-radius:4px;}
-    .categories-hidden{display:none!important;}
-    .filter-box{margin:20px 0;padding:10px;background:#fff;border:1px solid #ccc;border-radius:6px;display:inline-block;}
-    .month-summary{margin-top:10px;font-weight:bold;color:#333;background:#eef;padding:6px;border-radius:4px;}
-
-    /* Lesson page */
-    #lesson-input{width:100%;height:140px;font-size:1rem;padding:8px;box-sizing:border-box;}
-    .lesson-wrapper{display:flex;gap:10px;}
-    .lesson-card{flex:3;background:#fff;border:1px solid #bde;border-radius:6px;padding:12px;margin-bottom:15px;}
-    .lesson-heading{font-weight:bold;font-size:1.1rem;margin-bottom:8px;}
-    .lesson-time,.lesson-court{margin-bottom:6px;color:#444;}
-    .lesson-cost{font-weight:bold;color:#0a881f;margin-bottom:8px;}
-    .lesson-btn{background:#28a745;margin-right:5px;}
-    .lesson-btn-del{background:#cc0000;margin-right:5px;}
-    .lesson-calc{flex:1;padding:10px;border:1px dashed #555;background:#f8fff0;border-radius:6px;min-width:120px;}
-    .lesson-month-summary{font-weight:bold;background:#e7f6ee;color:#27734b;padding:6px;border-radius:5px;margin:8px 0;}
-    .lesson-filter{padding:10px;margin-bottom:10px;background:#fff;border:1px solid #ccc;border-radius:6px;}
+    .list { margin-top: 20px; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
+    .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .list h3 { margin: 0; font-size: 1rem; background: #444; color: #fff; padding: 5px 10px; border-radius: 4px; white-space:nowrap; }
+    .header-buttons button { margin-left: 4px; }
+    .event-wrapper { display:flex; gap:10px; }
+    .event-content { flex:3; }
+    .calc-panel { flex:1; padding:10px; border:1px dashed #888; background:#f0f8ff; border-radius:4px; }
+    .calc-panel input { width:30px; padding:4px; margin:3px; }
+    .calc-hidden { display:none; }
+    .item { display: grid; grid-template-columns: auto 1fr auto auto auto; gap: 8px; margin: 8px 0; align-items: center; }
+    .item-number { font-weight:bold; min-width: 20px; text-align:right; }
+    .checkbox-label { display: flex; align-items: center; gap: 4px; font-size: 0.9rem; }
+    .controls { display: contents; }
+    .controls .group { display: flex; flex-wrap: wrap; gap: 6px; align-items:center; flex:1 1 100%; }
+    .controls input[type="text"] { padding: 4px; border: 1px solid #ccc; border-radius: 4px; min-width: 100px; }
+    .item-text { flex:1; padding:4px; border:1px solid #ccc; border-radius:4px; }
+    .cat-快樂 { color: green; font-weight: bold; }
+    .cat-近初 { color: blue; font-weight: bold; }
+    .cat-初 { color: orange; font-weight: bold; }
+    .cat-初中 { color: purple; font-weight: bold; }
+    .categories-hidden { display: none !important; visibility: hidden !important; pointer-events: none !important; height: 0 !important; width: 0 !important; opacity: 0 !important; }
+    .filter-box { margin:20px 0; padding:10px; background:#fff; border:1px solid #ccc; border-radius:6px; display:inline-block; }
+    .filter-box select { padding:6px; border-radius:4px; border:1px solid #aaa; background:#f0f0f0; }
+    .month-summary { margin-top: 10px; font-weight: bold; color:#333; background:#eef; padding:6px; border-radius:4px; }
+    .header-快樂 { background: #006400 !important; }
+    /* Mobile responsive styles */
+    @media (max-width: 800px) {
+      .event-wrapper { flex-direction:column; }
+      .calc-panel { width:100%; }
+      .controls .group { flex-wrap:wrap; }
+    }
+    @media (max-width: 600px) {
+      .categories-col {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        width: 100%;
+      }
+      .categories-col label {
+        margin: 2px 0;
+        flex: 1;
+        min-width: 80px;
+      }
+      .item {
+        grid-template-columns: auto 1fr;
+        gap: 6px;
+      }
+      .item-number { grid-column: 1; }
+      .item-text { grid-column: 2; }
+      .controls { grid-column: 1 / span 2; display: flex; flex-wrap: wrap; gap: 6px; }
+      .checkbox-label { flex: 1; min-width: 80px; }
+      .filter-box { display: flex; flex-direction: column; gap: 10px; }
+      .filter-box label { display: flex; flex-direction: column; gap: 5px; }
+      .header-buttons { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+    }
+    /* Lesson Page */
+    #lesson-input-section { margin-bottom: 16px; }
+    #lesson-input { width:100%; height:140px; font-size:1rem; padding:8px; box-sizing:border-box; }
+    #lesson-btns { margin-bottom:10px; }
+    .lesson-list { margin-top: 20px; }
+    .lesson-card { background: #fff; border-radius: 6px; border: 1px solid #bde; padding: 16px 16px 6px 16px; margin-bottom: 20px; }
+    .lesson-heading { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color:#234; }
+    .lesson-time, .lesson-court { color: #444; font-size: 1rem; margin-bottom: 6px; }
+    .lesson-cost { font-size: 1.1rem; color: #0a881f; font-weight: bold; margin-bottom: 8px; }
+    .lesson-btn-del { background:#cc0000; color:#fff; border:none; border-radius:4px; padding:4px 10px; font-size:0.95rem; cursor:pointer; }
+    .lesson-btn-del:hover { background:#a00; }
+    .lesson-month-summary { font-weight: bold; font-size: 1.08rem; background: #e7f6ee; color: #27734b; padding: 6px 12px; border-radius: 5px; margin-bottom: 14px;}
+    @media (max-width:600px){
+      .lesson-card { padding: 10px 6px 5px 10px; }
+      .lesson-heading { font-size: 1rem; }
+      .lesson-cost { font-size: 1rem; }
+    }
   </style>
 </head>
 <body>
-
-<div class="tab-bar">
-  <button class="tab active" onclick="showPage('event')">🏸 Event 名單管理</button>
-  <button class="tab" onclick="showPage('lesson')">📚 Lesson 紀錄</button>
-</div>
-
-<!-- EVENT PAGE -->
-<div class="page active" id="event-page">
-  <h2>Add New Events</h2>
-  <textarea id="inputText" placeholder="Paste events here..."></textarea><br>
-  <button onclick="addList()">Add Event(s)</button>
-  <button onclick="clearAll()">Clear All</button>
-  <button class="pink-btn" onclick="toggleCategories()">Toggle Categories</button>
-  <button class="pink-btn" onclick="toggleCalc()">Hide Calculation</button>
-  <button onclick="exportJSON()">Export JSON</button>
-  <button onclick="document.getElementById('importFile').click()">Import JSON</button>
-  <button onclick="importJSONPrompt()">Import from Paste</button>
-  <button onclick="copyJSON()">Copy JSON</button>
-  <button onclick="copyEventData()">Copy Data (Input format)</button>
-  <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importJSONFile(event)">
-  <div class="filter-box">
-    <label>🔍 Search Name: <input type="text" id="nameSearch" oninput="renderLists()"></label>
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab active" onclick="showPage('event')">🏸 Event 名單管理</button>
+    <button class="tab" onclick="showPage('lesson')">📚 Lesson 紀錄</button>
   </div>
-  <div id="listsContainer"></div>
-</div>
-
-<!-- LESSON PAGE -->
-<div class="page" id="lesson-page">
-  <h2>📚 Lesson 紀錄</h2>
-  <textarea id="lesson-input" placeholder="已book場練波\n10/9\n美林體育館\n1400-1500\n4號場"></textarea><br>
-  <button onclick="addLessons()">Add Lesson(s)</button>
-  <button onclick="clearAllLessons()">Clear All Lessons</button>
-  <button onclick="exportLessons()">Export JSON</button>
-  <button onclick="importLessonsPrompt()">Import from Paste</button>
-  <button onclick="copyLessons()">Copy JSON</button>
-  <div class="lesson-filter">
-    <label>📅 Filter Month: <select id="lessonMonthFilter" onchange="renderLessons()"><option value="">All</option></select></label>
-    <label><input type="checkbox" id="lessonFutureOnly" onchange="renderLessons()"> Show Future Only</label>
+  
+  <!-- Event Page -->
+  <div class="page active" id="event-page">
+    <h2>Add New Events</h2>
+    <textarea id="inputText" placeholder="Paste events here..."></textarea><br>
+    <button onclick="addList()">Add Event(s)</button>
+    <button onclick="clearAll()">Clear All</button>
+    <button class="pink-btn" onclick="toggleCategories()">Hide Categories</button>
+    <button class="pink-btn"  onclick="toggleCalc()">Hide Calculation</button>
+    <button onclick="exportJSON()">Export JSON</button>
+    <button onclick="document.getElementById('importFile').click()">Import JSON</button>
+    <button onclick="importJSONPrompt()">Import from Paste</button>
+    <button onclick="copyJSON()">Copy JSON</button>
+    <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importJSONFile(event)">
+    <div class="filter-box">
+      <label>🔍 Search Name: 
+        <input type="text" id="nameSearch" placeholder="Enter name..." oninput="renderLists()">
+      </label>
+      <label>📅 Filter Month: 
+        <select id="monthFilter" onchange="renderLists()">
+          <option value="">All</option>
+        </select>
+      </label>
+      <label>📍 Filter Location: 
+        <select id="locationFilter" onchange="renderLists()">
+          <option value="">All</option>
+        </select>
+        <button onclick="deleteLocation()">❌ Delete Selected</button>
+      </label>
+      <label>
+        <input type="checkbox" id="futureEventsOnly" onchange="renderLists()"> 將來的場
+      </label>
+      <label>
+        <input type="checkbox" id="happyEventsOnly" onchange="renderLists()"> 快樂場
+      </label>
+    </div>
+    <div id="listsContainer"></div>
   </div>
-  <div id="lesson-list"></div>
-</div>
 
+  <!-- Lesson Page -->
+  <div class="page" id="lesson-page">
+    <h2>📚 Lesson 紀錄</h2>
+    <div id="lesson-input-section">
+      <textarea id="lesson-input" placeholder="每次一個課堂，每行分隔:
+已book場練波
+10/9
+美林體育館
+1400-1500
+4號場"></textarea><br>
+      <div id="lesson-btns">
+        <button onclick="addLessons()">Add Lesson(s)</button>
+        <button onclick="clearAllLessons()">Clear All Lessons</button>
+        <button onclick="exportLessons()">Export JSON</button>
+        <button onclick="importLessonsPrompt()">Import from Paste</button>
+        <button onclick="copyLessons()">Copy JSON</button>
+      </div>
+    </div>
+    <div id="lesson-list"></div>
+  </div>
+  
 <script>
-/* Tab Navigation */
-function showPage(page){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+/* -------- Tab Navigation -------- */
+function showPage(page) {
+  document.querySelectorAll('.tab').forEach(tab=>tab.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  if(page==='event'){document.querySelector('.tab:nth-child(1)').classList.add('active');document.getElementById('event-page').classList.add('active');renderLists();}
-  else {document.querySelector('.tab:nth-child(2)').classList.add('active');document.getElementById('lesson-page').classList.add('active');renderLessons();}
+  if(page==='event'){
+    document.querySelector('.tab:nth-child(1)').classList.add('active');
+    document.getElementById('event-page').classList.add('active');
+  }else{
+    document.querySelector('.tab:nth-child(2)').classList.add('active');
+    document.getElementById('lesson-page').classList.add('active');
+    renderLessons();
+  }
 }
 
-/* ---------------- EVENT PAGE ---------------- */
-let savedLists=JSON.parse(localStorage.getItem("savedLists")||"[]");
-let categoriesVisible=true,calcVisible=true;
-const categories=[{key:"快樂"},{key:"近初"},{key:"初"},{key:"初中"}];
-
-function renderLists(){
-  const cont=document.getElementById("listsContainer");cont.innerHTML="";
-  const search=document.getElementById("nameSearch").value.toLowerCase();
-  savedLists.forEach((list,idx)=>{
-    if(search && !list.items.some(it=>it.text.toLowerCase().includes(search))) return;
-    const listDiv=document.createElement("div");listDiv.className="list";
-    const hdiv=document.createElement("div");hdiv.className="list-header";
-    const h=document.createElement("h3");h.textContent=list.header;hdiv.appendChild(h);
-    const btns=document.createElement("div");btns.className="header-buttons";
-    const del=document.createElement("button");del.textContent="Delete";del.className="danger";del.onclick=()=>{if(confirm("Delete?")){savedLists.splice(idx,1);save();renderLists();}};
-    const cal=document.createElement("button");cal.textContent="Add to Calendar";cal.className="calendar-btn";cal.onclick=()=>addToGoogleCalendar(list.header,list.items);
-    btns.append(del,cal);hdiv.appendChild(btns);listDiv.appendChild(hdiv);
-    const wrap=document.createElement("div");wrap.className="event-wrapper";
-    const content=document.createElement("div");content.className="event-content";
-    list.items.forEach((item,i)=>{
-      const row=document.createElement("div");row.className="item";
-      const num=document.createElement("span");num.className="item-number";num.textContent=(i+1)+".";row.appendChild(num);
-      const txt=document.createElement("input");txt.type="text";txt.value=item.text;txt.className="item-text";txt.oninput=()=>{item.text=txt.value;save();};row.appendChild(txt);
-      const controls=document.createElement("div");controls.className="controls";
-      const pw=document.createElement("label");pw.className="checkbox-label";const pb=document.createElement("input");pb.type="checkbox";pb.checked=item.payment;pb.onchange=()=>{item.payment=pb.checked;save();};pw.append(pb,"Payment");controls.appendChild(pw);
-      const aw=document.createElement("label");aw.className="checkbox-label";const ab=document.createElement("input");ab.type="checkbox";ab.checked=item.arrive;ab.onchange=()=>{item.arrive=ab.checked;save();};aw.append(ab,"Arrive");controls.appendChild(aw);
-      const group=document.createElement("div");group.className="group";if(!categoriesVisible)group.classList.add("categories-hidden");
-      categories.forEach(c=>{const lab=document.createElement("label");const cb=document.createElement("input");cb.type="checkbox";cb.checked=item.categories?.[c.key]||false;cb.onchange=()=>{item.categories[c.key]=cb.checked;save();};lab.append(cb,c.key);group.appendChild(lab);});
-      const remark=document.createElement("input");remark.type="text";remark.value=item.remark||"";remark.placeholder="Remark";remark.className="remark-input";remark.oninput=()=>{item.remark=remark.value;save();};group.appendChild(remark);
-      controls.appendChild(group);row.appendChild(controls);content.appendChild(row);
+/* -------- Event Page -------- */
+let savedLists = JSON.parse(localStorage.getItem("savedLists") || "[]");
+let categoriesVisible = true;
+let calcVisible = true;
+let savedLocations = JSON.parse(localStorage.getItem("savedLocations") || "[]");
+const categories = [
+  { key: "快樂", class: "cat-快樂" },
+  { key: "近初", class: "cat-近初" },
+  { key: "初", class: "cat-初" },
+  { key: "初中", class: "cat-初中" },
+];
+function renderLists() {
+  const container = document.getElementById("listsContainer");
+  container.innerHTML = "";
+  populateMonthFilter();
+  populateLocationFilter();
+  const selectedMonth = document.getElementById("monthFilter").value;
+  const selectedLoc = document.getElementById("locationFilter").value;
+  const searchName = document.getElementById("nameSearch").value.toLowerCase();
+  const happyOnly = document.getElementById("happyEventsOnly").checked;
+  const futureOnly = document.getElementById("futureEventsOnly").checked;
+  savedLists.sort((a,b)=>parseHeaderDate(a.header)-parseHeaderDate(b.header));
+  let currentMonth=null;
+  let monthTotal=0;
+  savedLists.forEach((list, listIndex) => {
+    const listMonth=(list.header.match(/(\d{1,2})月/)||[])[1];
+    if (selectedMonth && listMonth!==selectedMonth) return;
+    if (selectedLoc && !list.header.includes(selectedLoc)) return; 
+    if (happyOnly && !list.header.includes("快樂")) return;
+    if (futureOnly && parseHeaderDate(list.header) < new Date()) return;
+    if (searchName) {
+      const hasName = list.items.some(item => 
+        item.text.toLowerCase().includes(searchName)
+      );
+      if (!hasName) return;
+    }
+    if(currentMonth && currentMonth!==listMonth){
+      const summary=document.createElement("div");
+      summary.className="month-summary";
+      summary.textContent=`${currentMonth}月 總淨利: 💰${monthTotal}`;
+      container.appendChild(summary);
+      monthTotal=0;
+    }
+    currentMonth=listMonth;
+    const listDiv = document.createElement("div");
+    listDiv.className = "list";
+    const headerDiv = document.createElement("div");
+    headerDiv.className = "list-header";
+    const header = document.createElement("h3");
+    header.textContent = list.header;
+    if (list.header.includes("快樂")) header.classList.add("header-快樂");
+    const btns = document.createElement("div");
+    btns.className = "header-buttons";
+    const upBtn = document.createElement("button");
+    upBtn.textContent = "▲";
+    upBtn.disabled = listIndex === 0;
+    upBtn.onclick = () => moveEvent(listIndex, -1);
+    const downBtn = document.createElement("button");
+    downBtn.textContent = "▼";
+    downBtn.disabled = listIndex === savedLists.length - 1;
+    downBtn.onclick = () => moveEvent(listIndex, 1);
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "Delete";
+    delBtn.className = "danger";
+    delBtn.onclick = () => {
+      if (confirm("Delete this event?")) {
+        savedLists.splice(listIndex, 1);
+        save(); renderLists();
+      }
+    };
+    const calBtn = document.createElement("button");
+    calBtn.textContent = "Add to Calendar";
+    calBtn.className = "calendar-btn";
+    calBtn.onclick = () => addToGoogleCalendar(list.header, list.items);
+    const addRowBtn = document.createElement("button");
+    addRowBtn.textContent = "Add Row";
+    addRowBtn.className = "add-row-btn";
+    addRowBtn.onclick = () => {
+      list.items.push({ text:"", payment:false, arrive:false, remark:"", categories:{} });
+      save(); renderLists();
+    };
+    const modifyBtn = document.createElement("button");
+    modifyBtn.textContent = "Modify";
+    modifyBtn.className = "modify-btn";
+    modifyBtn.onclick = () => {
+      const newHeader = prompt("Edit event header:", list.header);
+      if (newHeader !== null && newHeader.trim() !== "") {
+        list.header = newHeader.trim();
+        save();
+        renderLists();
+      }
+    };
+    btns.append(upBtn, downBtn, delBtn, calBtn, addRowBtn, modifyBtn);
+    headerDiv.append(header, btns);
+    listDiv.appendChild(headerDiv);
+    const wrapper=document.createElement("div");
+    wrapper.className="event-wrapper";
+    const contentDiv=document.createElement("div");
+    contentDiv.className="event-content";
+    list.items.forEach((item, itemIndex) => {
+      const div = document.createElement("div");
+      div.className = "item";
+      const numSpan=document.createElement("span");
+      numSpan.className="item-number";
+      numSpan.textContent=(itemIndex+1)+".";
+      div.appendChild(numSpan);
+      const textInput=document.createElement("input");
+      textInput.type="text";
+      textInput.className="item-text";
+      textInput.value=item.text;
+      textInput.placeholder="Name";
+      textInput.oninput=()=>{ item.text=textInput.value; save(); };
+      div.appendChild(textInput);
+      const controls = document.createElement("div");
+      controls.className = "controls";
+      const arriveWrapper = document.createElement("label");
+      arriveWrapper.className = "checkbox-label";
+      const arriveBox = document.createElement("input");
+      arriveBox.type = "checkbox";
+      arriveBox.checked = item.arrive || false;
+      arriveBox.onchange = () => { item.arrive = arriveBox.checked; save(); };
+      arriveWrapper.append(arriveBox, document.createTextNode("Arrive"));
+      controls.appendChild(arriveWrapper);
+      const payWrapper = document.createElement("label");
+      payWrapper.className = "checkbox-label";
+      const payBox = document.createElement("input");
+      payBox.type = "checkbox";
+      payBox.checked = item.payment || false;
+      payBox.onchange = () => { item.payment = payBox.checked; save(); };
+      payWrapper.append(payBox, document.createTextNode("Payment"));
+      controls.appendChild(payWrapper);
+      if (!item.categories) item.categories = {};
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "group categories-col";
+      if (!categoriesVisible) groupDiv.classList.add("categories-hidden");
+      else groupDiv.classList.remove("categories-hidden");
+      categories.forEach(cat => {
+        const wrap = document.createElement("label");
+        wrap.style.display="flex"; 
+        wrap.style.alignItems="center";
+        wrap.style.flexWrap = "nowrap";
+        const catBox = document.createElement("input");
+        catBox.type="checkbox";
+        catBox.checked=item.categories[cat.key]||false;
+        catBox.onchange=()=>{ item.categories[cat.key]=catBox.checked; save(); };
+        const span=document.createElement("span");
+        span.textContent=cat.key; 
+        if(cat.class) span.className=cat.class;
+        wrap.append(catBox,span); 
+        groupDiv.appendChild(wrap);
+      });
+      const remarkInput=document.createElement("input");
+      remarkInput.type="text"; 
+      remarkInput.placeholder="Remark";
+      remarkInput.value=item.remark||"";
+      remarkInput.oninput=()=>{ item.remark=remarkInput.value; save(); };
+      remarkInput.className = "remark-input";
+      if (!categoriesVisible) remarkInput.classList.add("categories-hidden");
+      else remarkInput.classList.remove("categories-hidden");
+      const removeBtn=document.createElement("button");
+      removeBtn.textContent="✖";
+      removeBtn.className="danger remove-btn";
+      removeBtn.onclick=()=>{
+        list.items.splice(itemIndex,1);
+        save(); renderLists();
+      };
+      if (!categoriesVisible) removeBtn.classList.add("categories-hidden");
+      else removeBtn.classList.remove("categories-hidden");
+      groupDiv.appendChild(remarkInput);
+      groupDiv.appendChild(removeBtn);
+      controls.appendChild(groupDiv);
+      div.appendChild(controls);
+      contentDiv.appendChild(div);
     });
-    wrap.appendChild(content);
-    const calc=document.createElement("div");calc.className="calc-panel";if(!calcVisible)calc.classList.add("calc-hidden");calc.textContent="(calculation panel placeholder)";wrap.appendChild(calc);
-    listDiv.appendChild(wrap);cont.appendChild(listDiv);
+    const calcPanel=document.createElement("div");
+    calcPanel.className="calc-panel";
+    if(!calcVisible) calcPanel.classList.add("calc-hidden");
+    const priceInput=document.createElement("input");
+    priceInput.type="number"; priceInput.placeholder="Price";
+    priceInput.value=list.price||extractPrice(list.header);
+    priceInput.oninput=()=>{ list.price=parseInt(priceInput.value)||0; save(); renderLists(); };
+    const personInput=document.createElement("input");
+    personInput.type="number"; personInput.min="1"; personInput.value=list.persons||guessPersons(list.header);
+    personInput.oninput=()=>{ list.persons=parseInt(personInput.value)||6; save(); renderLists(); };
+    const hoursInput=document.createElement("input");
+    hoursInput.type="number"; hoursInput.min="1"; hoursInput.value=list.hours||extractHours(list.header);
+    hoursInput.oninput=()=>{ list.hours=parseInt(hoursInput.value)||1; save(); renderLists(); };
+    const courtInput=document.createElement("input");
+    courtInput.type="number"; courtInput.value=list.courtCost||calcCourt(list.header,hoursInput.value);
+    courtInput.oninput=()=>{ list.courtCost=parseInt(courtInput.value)||0; save(); renderLists(); };
+    const ballInput=document.createElement("input");
+    ballInput.type="number"; ballInput.value=list.ballCost||25*(list.hours||1);
+    ballInput.oninput=()=>{ list.ballCost=parseInt(ballInput.value)||0; save(); renderLists(); };
+    const resultDiv=document.createElement("div");
+    resultDiv.textContent="Result: -";
+    const price=parseInt(priceInput.value)||0;
+    const persons=parseInt(personInput.value)||6;
+    const hours=parseInt(hoursInput.value)||1;
+    const courtCost=parseInt(courtInput.value)||0;
+    const ballCost=25*hours;
+    ballInput.value=ballCost;
+    const result=price*persons-courtCost-ballCost;
+    resultDiv.textContent=`${price}×${persons} - 場地:${courtCost} - 球:${ballCost} = 💰${result}`;
+    list.net=result;
+    monthTotal+=result;
+    calcPanel.append("價錢:",priceInput," 人數:",personInput," 時數:",hoursInput," 場地:",courtInput," 球:",ballInput, resultDiv);
+    wrapper.appendChild(contentDiv);
+    wrapper.appendChild(calcPanel);
+    listDiv.appendChild(wrapper);
+    container.appendChild(listDiv);
   });
+  if(currentMonth){
+    const summary=document.createElement("div");
+    summary.className="month-summary";
+    summary.textContent=`${currentMonth}月 總淨利: 💰${monthTotal}`;
+    container.appendChild(summary);
+  }
+}
+function extractPrice(header){ const m=header.match(/\$ ?(\d+)/); return m?parseInt(m[1],10):0; }
+function extractHours(header){
+  const m=header.match(/(\d{1,2})(?:\s*[:：](\d{2}))?\s*-\s*(\d{1,2})(?:\s*[:：](\d{2}))?\s*(am|pm)?/i);
+  if(!m) return 1;
+  let start=parseInt(m[1]);
+  let end=parseInt(m[3]);
+  const ampm=m[5];
+  if(ampm) {
+    const isPM = ampm.toLowerCase() === 'pm';
+    if(isPM) {
+      if(start < 12) start += 12;
+      if(end < 12) end += 12;
+    } else {
+      if(start === 12) start = 0;
+      if(end === 12) end = 0;
+    }
+  }
+  let dur=end-start;
+  if(dur<=0) dur+=12;
+  return dur;
+}
+function calcCourt(header,hours){ let per=59; if(/會所/.test(header)){ const dow=new Date().getDay(); per=(dow===0||dow===6)?85:75; } else if(/顥徑|恒安/.test(header)) per=39; return per*(hours||1); }
+function guessPersons(header){
+  if(/Suki no/i.test(header)) return 7;
+  if(/Suki/i.test(header)) return 6;
+  return 6;
+}
+function parseHeaderDate(header){
+  const m=header.match(/(\d{1,2})月(\d{1,2})日.*?(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?/);
+  if(!m) return new Date(2099,11,31);
+  const month=parseInt(m[1])-1;
+  const day=parseInt(m[2]);
+  let hour=parseInt(m[3]);
+  const minute = m[4] ? parseInt(m[4]) : 0;
+  if (hour < 12 && header.toLowerCase().includes('pm')) hour += 12;
+  return new Date(new Date().getFullYear(), month, day, hour, minute);
+}
+function populateMonthFilter(){
+  const sel=document.getElementById("monthFilter");
+  const months=new Set();
+  savedLists.forEach(list=>{
+    const m=list.header.match(/(\d{1,2})月/);
+    if(m) months.add(m[1]);
+  });
+  const currentVal=sel.value;
+  sel.innerHTML='<option value="">All</option>';
+  [...months].sort((a,b)=>a-b).forEach(m=>{
+    const opt=document.createElement("option");
+    opt.value=m; opt.textContent=m+"月";
+    if(m===currentVal) opt.selected=true;
+    sel.appendChild(opt);
+  });
+}
+function populateLocationFilter(){
+  const sel=document.getElementById("locationFilter");
+  const locs=new Set(savedLocations);
+  savedLists.forEach(list=>{
+    const locMatch=list.header.match(/(會所|顥徑|恒安|圓洲角|馬安山|馬鞍山|車公廟|美林|源禾|長沙灣|保安道|北河街|單車館)/);
+    if(locMatch) locs.add(locMatch[1]);
+  });
+  savedLocations=[...locs];
+  localStorage.setItem("savedLocations",JSON.stringify(savedLocations));
+  const currentVal=sel.value;
+  sel.innerHTML='<option value="">All</option>';
+  savedLocations.forEach(l=>{
+    const opt=document.createElement("option");
+    opt.value=l; opt.textContent=l;
+    if(l===currentVal) opt.selected=true;
+    sel.appendChild(opt);
+  });
+}
+function deleteLocation(){
+  const sel=document.getElementById("locationFilter");
+  const val=sel.value;
+  if(!val) return;
+  if(confirm("Delete location filter '"+val+"'?")){
+    savedLocations=savedLocations.filter(l=>l!==val);
+    localStorage.setItem("savedLocations",JSON.stringify(savedLocations));
+    renderLists();
+  }
 }
 function addList(){
-  const input=document.getElementById("inputText").value.trim();if(!input)return;
+  const input=document.getElementById("inputText").value.trim();
+  if(!input) return;
   const blocks=input.split(/\n\s*\n/);
   blocks.forEach(block=>{
-    const lines=block.split(/\r?\n/).filter(Boolean);if(lines.length<2)return;
-    const header=lines[0];const items=lines.slice(1).map(l=>({text:l.replace(/^\d+[\.\s]*/,""),payment:false,arrive:false,remark:"",categories:{}}));
-    if(items.length>0)savedLists.push({header,items});
-  });save();document.getElementById("inputText").value="";renderLists();
-}
-function clearAll(){if(confirm("Clear all?")){savedLists=[];save();renderLists();}}
-function save(){localStorage.setItem("savedLists",JSON.stringify(savedLists));}
-function toggleCategories(){categoriesVisible=!categoriesVisible;renderLists();}
-function toggleCalc(){calcVisible=!calcVisible;renderLists();}
-function exportJSON(){const s=JSON.stringify(savedLists,null,2);const b=new Blob([s],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="events.json";a.click();URL.revokeObjectURL(u);}
-function importJSONFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(Array.isArray(d)){savedLists=d;save();renderLists();}else alert("Invalid JSON");}catch(err){alert(err);}};r.readAsText(f);}
-function importJSONPrompt(){const t=prompt("Paste JSON:");if(!t)return;try{const d=JSON.parse(t);if(Array.isArray(d)){savedLists=d;save();renderLists();}}catch(e){alert(e);}}
-function copyJSON(){navigator.clipboard.writeText(JSON.stringify(savedLists,null,2)).then(()=>alert("✅ Copied"));}
-function copyEventData(){let txt="";savedLists.forEach(l=>{txt+=l.header+"\n";l.items.forEach((it,i)=>txt+=(i+1)+". "+it.text+"\n");txt+="\n";});navigator.clipboard.writeText(txt.trim()).then(()=>alert("✅ Copied in input format"));}
-function addToGoogleCalendar(headerText,items){alert("Google Calendar link for: "+headerText);} /* simplified */
-
-/* ---------------- LESSON PAGE ---------------- */
-let lessonData=JSON.parse(localStorage.getItem("lessonData")||"[]");
-function parseLessonBlock(block){
-  let lines=block.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
-  if(lines[0].includes("已book場")) lines.shift();
-  if(lines.length<4) return null;
-  const [dateStr, locRaw, timeStr, court]=lines;
-  const location=locRaw.replace(/體育館/g,"");
-  const dm=dateStr.match(/(\d{1,2})[\/\-](\d{1,2})/);if(!dm)return null;
-  const month=+dm[1],day=+dm[2];
-  const tm=timeStr.match(/(\d{2})(\d{2})-(\d{2})(\d{2})/);if(!tm)return null;
-  const sh=+tm[1], sm=+tm[2], eh=+tm[3], em=+tm[4];
-  const eventName=`${location}上堂 ${court}`;
-  return {month,day,startHour:sh,startMinute:sm,endHour:eh,endMinute:em,location,court,eventName};
-}
-function addLessons(){
-  const txt=document.getElementById("lesson-input").value.trim();if(!txt)return;
-  const blocks=txt.split(/\n\s*\n/).filter(Boolean);
-  blocks.forEach(b=>{const l=parseLessonBlock(b);if(l)lessonData.push(l);});
-  localStorage.setItem("lessonData",JSON.stringify(lessonData));document.getElementById("lesson-input").value="";renderLessons();
-}
-function renderLessons(){
-  const cont=document.getElementById("lesson-list");cont.innerHTML="";
-  if(!lessonData.length){cont.innerHTML="<div style='color:#888'>沒有課堂紀錄</div>";return;}
-  const sel=document.getElementById("lessonMonthFilter");
-  const months=[...new Set(lessonData.map(l=>l.month))];sel.innerHTML="<option value=''>All</option>";months.forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m+"月";sel.appendChild(o);});
-  const fMonth=sel.value;const futureOnly=document.getElementById("lessonFutureOnly").checked;
-  lessonData.sort((a,b)=>a.month-b.month||a.day-b.day||a.startHour-b.startHour);
-  let current=null,sum=0;
-  lessonData.forEach((l,idx)=>{
-    const d=new Date(new Date().getFullYear(),l.month-1,l.day,l.startHour,l.startMinute);
-    if(fMonth && l.month.toString()!==fMonth)return;
-    if(futureOnly && d<new Date())return;
-    if(current && current!==l.month){const sd=document.createElement("div");sd.className="lesson-month-summary";sd.textContent=current+"月合共："+sum;cont.appendChild(sd);sum=0;}
-    current=l.month;
-    const wrap=document.createElement("div");wrap.className="lesson-wrapper";
-    const card=document.createElement("div");card.className="lesson-card";card.innerHTML=`<div class="lesson-heading">${l.month}月${l.day}日 ${l.location}</div><div class="lesson-time">${pad(l.startHour)}:${pad(l.startMinute)}~${pad(l.endHour)}:${pad(l.endMinute)}</div><div class="lesson-court">${l.court}</div>`;
-    const btn=document.createElement("button");btn.textContent="Add to Calendar";btn.className="lesson-btn";btn.onclick=()=>addLessonToCalendar(l);card.appendChild(btn);
-    const del=document.createElement("button");del.textContent="✖ 刪除";del.className="lesson-btn-del";del.onclick=()=>{if(confirm("Delete?")){lessonData.splice(idx,1);localStorage.setItem("lessonData",JSON.stringify(lessonData));renderLessons();}};card.appendChild(del);
-    wrap.appendChild(card);
-    const calc=document.createElement("div");calc.className="lesson-calc";const dur=(l.endHour*60+l.endMinute-(l.startHour*60+l.startMinute))/60;const cost=dur*260;calc.textContent=`時數:${dur}h × 260 = $${cost}`;sum+=cost;wrap.appendChild(calc);
-    cont.appendChild(wrap);
+    const lines=block.split(/\r?\n/).map(l=>l.replace(/^•\s*/,"")).filter(l=>l.trim()!=="");
+    if(lines.length<2) return;
+    let firstNumIndex=lines.findIndex(line=>/^\s*1[\.\s]/.test(line));
+    if(firstNumIndex===-1) return;
+    const header=lines.slice(0,firstNumIndex).join(" ").replace(/\s+/g," ").trim();
+    const items=[];
+    lines.slice(firstNumIndex).forEach(line=>{
+      const match=line.match(/^\s*(\d+[\.\s]*)?(.+)$/);
+      if(match) items.push({ text:match[2].trim(), payment:false, arrive:false, remark:"", categories:{} });
+    });
+    if(items.length>0) savedLists.push({ header, items });
   });
-  if(current){const sd=document.createElement("div");sd.className="lesson-month-summary";sd.textContent=current+"月合共："+sum;cont.appendChild(sd);}
+  save(); document.getElementById("inputText").value=""; renderLists();
 }
-function addLessonToCalendar(l){
-  const s=new Date(new Date().getFullYear(),l.month-1,l.day,l.startHour,l.startMinute);
-  const e=new Date(new Date().getFullYear(),l.month-1,l.day,l.endHour,l.endMinute);
-  const fmt=d=>d.toISOString().replace(/-|:|\.\d+/g,"");
-  const title=l.eventName;
-  const url="https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(title)+"&dates="+fmt(s)+"/"+fmt(e);
-  window.open(url,'_blank');
+function moveEvent(i,d){ const ni=i+d; if(ni<0||ni>=savedLists.length) return; const[m]=savedLists.splice(i,1); savedLists.splice(ni,0,m); save(); renderLists(); }
+function clearAll(){ if(confirm("Clear all saved events?")){ savedLists=[]; localStorage.removeItem("savedLists"); renderLists(); } }
+function save(){ localStorage.setItem("savedLists",JSON.stringify(savedLists)); }
+function toggleCategories(){ categoriesVisible = !categoriesVisible; renderLists(); }
+function toggleCalc(){ calcVisible=!calcVisible; renderLists(); }
+function exportJSON(){ const dataStr=JSON.stringify(savedLists,null,2); const blob=new Blob([dataStr],{type:"application/json"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="events.json"; a.click(); URL.revokeObjectURL(url); }
+function importJSONFile(e){ const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=ev=>{ try{ const data=JSON.parse(ev.target.result); if(Array.isArray(data)){ savedLists=data; save(); renderLists(); alert("✅ Imported!"); } else alert("⚠️ Invalid JSON"); } catch(err){ alert("⚠️ Error:"+err); } }; reader.readAsText(file); }
+function importJSONPrompt(){ 
+  const input=prompt("Paste JSON:"); 
+  if(!input) return; 
+  try{ 
+    const data=JSON.parse(input); 
+    if(Array.isArray(data)){ 
+      savedLists = data;
+      save(); 
+      renderLists(); 
+      alert("✅ Imported!"); 
+    } else {
+      alert("⚠️ Invalid JSON: Expected an array"); 
+    }
+  } catch(err){ 
+    alert("⚠️ Error:"+err); 
+  } 
 }
-function pad(n){return n<10?"0"+n:n;}
-function clearAllLessons(){if(confirm("Clear all lessons?")){lessonData=[];localStorage.removeItem("lessonData");renderLessons();}}
-function exportLessons(){const s=JSON.stringify(lessonData,null,2);const b=new Blob([s],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="lessons.json";a.click();URL.revokeObjectURL(u);}
-function copyLessons(){navigator.clipboard.writeText(JSON.stringify(lessonData,null,2)).then(()=>alert("✅ Copied"));}
-function importLessonsPrompt(){const t=prompt("Paste JSON:");if(!t)return;try{const d=JSON.parse(t);if(Array.isArray(d)){lessonData=d;localStorage.setItem("lessonData",JSON.stringify(d));renderLessons();}}catch(e){alert(e);}}
+function copyJSON(){ const dataStr=JSON.stringify(savedLists,null,2); navigator.clipboard.writeText(dataStr).then(()=>alert("✅ Copied!")).catch(err=>alert("⚠️ Failed:"+err)); }
+function addToGoogleCalendar(headerText, items) {
+  const dateMatch = headerText.match(/(\d{1,2})月(\d{1,2})日/);
+  if (!dateMatch) {
+    alert("無法從標題解析日期");
+    return;
+  }
+  const month = parseInt(dateMatch[1]);
+  const day = parseInt(dateMatch[2]);
+  const year = new Date().getFullYear();
+  const timeMatch = headerText.match(/(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?\s*(上午|下午|am|pm)?/i);
+  if (!timeMatch) {
+    alert("無法從標題解析時間");
+    return;
+  }
+  let startHour = parseInt(timeMatch[1]);
+  const startMinute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+  let endHour = parseInt(timeMatch[3]);
+  const endMinute = timeMatch[4] ? parseInt(timeMatch[4]) : 0;
+  const period = timeMatch[5] || '';
+  if (period.toLowerCase().includes('下午') || period.toLowerCase() === 'pm') {
+    if (startHour < 12) startHour += 12;
+    if (endHour < 12) endHour += 12;
+  } else if (period.toLowerCase().includes('上午') || period.toLowerCase() === 'am') {
+    if (startHour === 12) startHour = 0;
+    if (endHour === 12) endHour = 0;
+  }
+  const startDate = new Date(year, month - 1, day, startHour, startMinute);
+  const endDate = new Date(year, month - 1, day, endHour, endMinute);
+  const formatDate = (date) => {
+    return date.toISOString().replace(/-|:|\.\d+/g, '');
+  };
+  let description = "參加者:\n";
+  items.forEach((item, index) => {
+    description += `${index + 1}. ${item.text}\n`;
+  });
+  let title = headerText;
+  title = title.replace(/\d{1,2}月\d{1,2}日.*?(am|pm)/i, "");
+  title = title.replace(/\$\s*\d+/, "");
+  title = title.replace(/體育館/, "");
+  title = title.replace(/🈵🈵/, "");
+  title = title.replace(/🈶🈶/, "");
+  title = title.trim();
+  const baseUrl = "https://calendar.google.com/calendar/r/eventedit";
+  const params = new URLSearchParams({
+    text: title,
+    dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
+    details: description,
+    sf: true,
+    output: 'xml'
+  });
 
-window.addEventListener("load",()=>{renderLists();renderLessons();});
+  window.open(`${baseUrl}?${params.toString()}`, '_blank');
+}
+
+function addToGoogleCalendarLesson(month,day, startHour,endHour, location) {
+  const year = new Date().getFullYear(); 
+  const startDate = new Date(year, month - 1, day, startHour, 0); 
+  const endDate = new Date(year, month - 1, day, endHour, 0);
+  const formatDate = (date) => {
+    return date.toISOString().replace(/-|:|\.\d+/g, '');
+  };
+  console.log('after formatDate',)
+  let title = location;
+  // title = title.replace(/\d{1,2}月\d{1,2}日.*?(am|pm)/i, "");
+  // title = title.replace(/\$\s*\d+/, "");
+  title = title.replace(/體育館/, "");
+  // title = title.replace(/🈵🈵/, "");
+  // title = title.replace(/🈶🈶/, "");
+  // title = title.trim();
+  console.log('???? ',`${formatDate(startDate)}/${formatDate(endDate)}`)
+  const baseUrl = "https://calendar.google.com/calendar/r/eventedit";
+  const params = new URLSearchParams({
+    text: title,
+    dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
+    details: '',
+    sf: true,
+    output: 'xml'
+  });
+
+  window.open(`${baseUrl}?${params.toString()}`, '_blank');
+}
+window.addEventListener("load", renderLists);
+
+/* -------- Lesson Page -------- */
+let lessonData = JSON.parse(localStorage.getItem("lessonData") || "[]");
+function addLessons() {
+  const input = document.getElementById("lesson-input").value.trim();
+  if (!input) return;
+  // const blocks = input.split(/\n\s*\n/).map(b=>b.trim()).filter(Boolean);
+  // blocks.forEach(block => {
+  //   // Expect 5 lines: (ignore first line if matches 已book場)
+  //   let lines = block.split(/\r?\n+/).map(l=>l.trim()).filter(Boolean); 
+  //   if (lines[0].includes('已book場')) lines = lines.slice(1);
+  //   if (lines.length < 3) return; // must have date,loc,time,court
+  //   // Format:
+  //   // 0: 10/9
+  //   // 1: 美林體育館
+  //   // 2: 1400-1500
+  //   // 3: 4號場
+  //   const [date, location, timeRaw, court] = lines;
+
+  //   console.log('????date ????',lines);
+  //   // Parse month/day
+  //   const dateMatch = date.match(/(\d{1,2})[\/\-](\d{1,2})/);
+  //   if (!dateMatch) return;
+  //   const month = parseInt(dateMatch[1]);
+  //   const day = parseInt(dateMatch[2]);
+  //   // Parse time
+  //   const timeMatch = timeRaw.match(/(\d{2})(\d{2})-(\d{2})(\d{2})/);
+  //   if (!timeMatch) return;
+  //   const startHour = parseInt(timeMatch[1]);
+  //   const startMinute = parseInt(timeMatch[2]);
+  //   const endHour = parseInt(timeMatch[3]);
+  //   const endMinute = parseInt(timeMatch[4]);
+  //   console.log('??result ?? ', month, day, location, 
+  //     startHour, startMinute, 
+  //     endHour, endMinute, 
+  //     court, );
+      //11 9 源禾路體育館 12 0 14 0 3號場
+    // lessonData.push({
+    //   month,
+    //    day, 
+    //    location, 
+    //   startHour, 
+    //   startMinute, 
+    //   endHour, 
+    //   endMinute, 
+    //   court, 
+    //   cost: 260
+    // });
+  
+    const {day, month,  startHour, startMinute, endHour, endMinute, eventName ,court} = parseExtraText(input);
+
+
+    console.log('???',month, day, startHour, startMinute, endHour, endMinute, eventName,court)
+    lessonData.push({
+      month:month,
+       day:day, 
+      location: eventName, 
+      startHour :startHour, 
+      startMinute :startMinute, 
+      endHour:endHour, 
+      endMinute:endMinute, 
+      court :court, 
+      cost: 260
+    });
+  // });
+  localStorage.setItem("lessonData", JSON.stringify(lessonData));
+  document.getElementById("lesson-input").value = "";
+  renderLessons();
+}
+function renderLessons() {
+  const container = document.getElementById("lesson-list");
+  container.innerHTML = "";
+  if (!lessonData.length) {
+    container.innerHTML = '<div style="color:#888">沒有課堂記錄</div>';
+    return;
+  }
+  // Sort by date
+  lessonData.sort((a, b) => {
+    if (a.month !== b.month) return a.month - b.month;
+    if (a.day !== b.day) return a.day - b.day;
+    if (a.startHour !== b.startHour) return a.startHour - b.startHour;
+    return a.startMinute - b.startMinute;
+  });
+  let currentMonth = null;
+  let monthTotal = 0;
+  lessonData.forEach((lesson, idx) => {
+    if (currentMonth && currentMonth !== lesson.month) {
+      // Show summary for last month
+      const sumDiv = document.createElement("div");
+      sumDiv.className = "lesson-month-summary";
+      sumDiv.textContent = `${currentMonth}月合共：$${monthTotal}`;
+      container.appendChild(sumDiv);
+      monthTotal = 0;
+    }
+    currentMonth = lesson.month;
+    monthTotal += lesson.cost;
+    const card = document.createElement("div");
+    card.className = "lesson-card";
+    // Heading
+    const heading = document.createElement("div");
+    heading.className = "lesson-heading";
+    heading.textContent = `${lesson.month}月${lesson.day}日 ${lesson.location}`;
+    card.appendChild(heading);
+    // Time
+    const time = document.createElement("div");
+    time.className = "lesson-time";
+    time.textContent = `${pad(lesson.startHour)}:${pad(lesson.startMinute)} ~ ${pad(lesson.endHour)}:${pad(lesson.endMinute)}`;
+    card.appendChild(time);
+    // // Court
+    // const court = document.createElement("div");
+    // court.className = "lesson-court";
+    // court.textContent = lesson.court;
+    // card.appendChild(court);
+    // Fixed cost
+    const cost = document.createElement("div");
+    cost.className = "lesson-cost";
+    cost.textContent = `$${lesson.cost}`;
+    card.appendChild(cost);
+
+    const calBtn2 = document.createElement("button");
+    calBtn2.textContent = "Add Lesson to Calendar";
+    calBtn2.className = "calendar-btn";
+    calBtn2.onclick = () => addToGoogleCalendarLesson(lesson.month,lesson.day,lesson.startHour,lesson.endHour,lesson.location );
+    // Delete btn
+    const delBtn = document.createElement("button");
+    delBtn.className = "lesson-btn-del";
+    delBtn.textContent = "✖ 刪除";
+    delBtn.onclick = () => {
+      if (confirm("Delete this lesson?")) {
+        lessonData.splice(idx,1);
+        localStorage.setItem("lessonData", JSON.stringify(lessonData));
+        renderLessons();
+      }
+    };
+    card.appendChild(calBtn2);
+    card.appendChild(delBtn);
+    container.appendChild(card);
+  });
+  // Last month summary
+  if (currentMonth) {
+    const sumDiv = document.createElement("div");
+    sumDiv.className = "lesson-month-summary";
+    sumDiv.textContent = `${currentMonth}月合共：$${monthTotal}`;
+    container.appendChild(sumDiv);
+  }
+}
+function pad(n) { return n < 10 ? "0"+n : n; }
+function clearAllLessons(){
+  if(confirm("確定要清除所有課堂紀錄？")){
+    lessonData = [];
+    localStorage.removeItem("lessonData");
+    renderLessons();
+  }
+}
+function exportLessons(){
+  const dataStr=JSON.stringify(lessonData,null,2); 
+  const blob=new Blob([dataStr],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); 
+  a.href=url; a.download="lessons.json"; a.click(); 
+  URL.revokeObjectURL(url);
+}
+function copyLessons(){
+  const dataStr=JSON.stringify(lessonData,null,2);
+  navigator.clipboard.writeText(dataStr)
+    .then(()=>alert("✅ Copied!"))
+    .catch(err=>alert("⚠️ Failed:"+err));
+}
+function importLessonsPrompt(){
+  const input=prompt("Paste JSON:");
+  if(!input) return;
+  try{
+    const data=JSON.parse(input);
+    if(Array.isArray(data)){
+      lessonData = data;
+      localStorage.setItem("lessonData",JSON.stringify(lessonData));
+      renderLessons();
+      alert("✅ Imported!");
+    } else {
+      alert("⚠️ Invalid JSON: Expected an array");
+    }
+  }catch(err){
+    alert("⚠️ Error:"+err);
+  }
+}
+
+
+function parseExtraText(text) {
+  console.log('test???')
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  if (lines.length < 4) 
+     console.log('行數不足')
+
+  // throw new Error('extra_text 格式錯誤，行數不足');
+
+  const dateMatch = lines[1].match(/(\d{1,2})\/(\d{1,2})/);
+  if (!dateMatch)  
+  console.log('找不到日期')
+  // throw new Error('找不到日期');
+
+  const day = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+
+  const timeMatch = lines[3].match(/(\d{2})(\d{2})-(\d{2})(\d{2})/);
+  if (!timeMatch) 
+    console.log('找不到時間範圍')
+
+  const startHour = Number(timeMatch[1]);
+  const startMinute = Number(timeMatch[2]);
+  const endHour = Number(timeMatch[3]);
+  const endMinute = Number(timeMatch[4]);
+
+  const venue = lines[2];
+  const court =  lines.length >= 5 ? lines[4]  : '' ;
+  
+
+  const eventName = `${venue}${court}上堂`;
+ console.log('venue',venue)
+  return {
+    month,
+    day,
+    startHour,
+    startMinute,
+    endHour,
+    endMinute,
+    eventName,
+    court,
+  };
+}
 </script>
 </body>
 </html>
