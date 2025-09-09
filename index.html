@@ -40,7 +40,7 @@
     .calendar-btn:hover { background: #1e7e34; }
     .modify-btn { background: #ff9900; }
     .modify-btn:hover { background: #e68a00; }
-     .pink-btn { background:#ff66cc; }
+     .pink-btn { background:pink;color:#333}
     .pink-btn:hover { background:#e055b4; }
     .list { margin-top: 20px; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
     .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
@@ -49,7 +49,7 @@
     .event-wrapper { display:flex; gap:10px; }
     .event-content { flex:3; }
     .calc-panel { flex:1; padding:10px; border:1px dashed #888; background:#f0f8ff; border-radius:4px; }
-    .calc-panel input { width:30px; padding:4px; margin:3px; }
+    .calc-panel input { width:35px; padding:4px; margin:3px; }
     .calc-hidden { display:none; }
     .item { display: grid; grid-template-columns: auto 1fr auto auto auto; gap: 8px; margin: 8px 0; align-items: center; }
     .item-number { font-weight:bold; min-width: 20px; text-align:right; }
@@ -151,7 +151,14 @@
         </select>
         <button onclick="deleteLocation()">❌ Delete Selected</button>
       </label>
-      <label>
+  
+        <label>
+        <input type="checkbox" id="yesterdayEventsOnly" onchange="renderLists()"> 昨天的場
+      </label>
+       <label>
+        <input type="checkbox" id="todayEventsOnly" onchange="renderLists()"> 今天的場
+      </label>
+          <label>
         <input type="checkbox" id="futureEventsOnly" onchange="renderLists()"> 將來的場
       </label>
       <label>
@@ -177,6 +184,7 @@
         <button onclick="exportLessons()">Export JSON</button>
         <button onclick="importLessonsPrompt()">Import from Paste</button>
         <button onclick="copyLessons()">Copy JSON</button>
+        
       </div>
     </div>
     <div id="lesson-list"></div>
@@ -218,6 +226,8 @@ function renderLists() {
   const searchName = document.getElementById("nameSearch").value.toLowerCase();
   const happyOnly = document.getElementById("happyEventsOnly").checked;
   const futureOnly = document.getElementById("futureEventsOnly").checked;
+  const yesterdayOnly = document.getElementById("yesterdayEventsOnly").checked;
+  const todayOnly = document.getElementById("todayEventsOnly").checked;
   savedLists.sort((a,b)=>parseHeaderDate(a.header)-parseHeaderDate(b.header));
   let currentMonth=null;
   let monthTotal=0;
@@ -227,6 +237,9 @@ function renderLists() {
     if (selectedLoc && !list.header.includes(selectedLoc)) return; 
     if (happyOnly && !list.header.includes("快樂")) return;
     if (futureOnly && parseHeaderDate(list.header) < new Date()) return;
+    // const now = new Date();
+    if (yesterdayOnly && !isSameDay(parseHeaderDate(list.header),  new Date(new Date().setDate(new Date().getDate()-1)))) return;
+    if (todayOnly && !isSameDay(parseHeaderDate(list.header),  new Date())) return;
     if (searchName) {
       const hasName = list.items.some(item => 
         item.text.toLowerCase().includes(searchName)
@@ -625,72 +638,37 @@ window.addEventListener("load", renderLists);
 
 /* -------- Lesson Page -------- */
 let lessonData = JSON.parse(localStorage.getItem("lessonData") || "[]");
+
+// Add this function to save lesson data
+function saveLessons() {
+  localStorage.setItem("lessonData", JSON.stringify(lessonData));
+}
+
 function addLessons() {
   const input = document.getElementById("lesson-input").value.trim();
   if (!input) return;
-  // const blocks = input.split(/\n\s*\n/).map(b=>b.trim()).filter(Boolean);
-  // blocks.forEach(block => {
-  //   // Expect 5 lines: (ignore first line if matches 已book場)
-  //   let lines = block.split(/\r?\n+/).map(l=>l.trim()).filter(Boolean); 
-  //   if (lines[0].includes('已book場')) lines = lines.slice(1);
-  //   if (lines.length < 3) return; // must have date,loc,time,court
-  //   // Format:
-  //   // 0: 10/9
-  //   // 1: 美林體育館
-  //   // 2: 1400-1500
-  //   // 3: 4號場
-  //   const [date, location, timeRaw, court] = lines;
-
-  //   console.log('????date ????',lines);
-  //   // Parse month/day
-  //   const dateMatch = date.match(/(\d{1,2})[\/\-](\d{1,2})/);
-  //   if (!dateMatch) return;
-  //   const month = parseInt(dateMatch[1]);
-  //   const day = parseInt(dateMatch[2]);
-  //   // Parse time
-  //   const timeMatch = timeRaw.match(/(\d{2})(\d{2})-(\d{2})(\d{2})/);
-  //   if (!timeMatch) return;
-  //   const startHour = parseInt(timeMatch[1]);
-  //   const startMinute = parseInt(timeMatch[2]);
-  //   const endHour = parseInt(timeMatch[3]);
-  //   const endMinute = parseInt(timeMatch[4]);
-  //   console.log('??result ?? ', month, day, location, 
-  //     startHour, startMinute, 
-  //     endHour, endMinute, 
-  //     court, );
-      //11 9 源禾路體育館 12 0 14 0 3號場
-    // lessonData.push({
-    //   month,
-    //    day, 
-    //    location, 
-    //   startHour, 
-    //   startMinute, 
-    //   endHour, 
-    //   endMinute, 
-    //   court, 
-    //   cost: 260
-    // });
   
-    const {day, month,  startHour, startMinute, endHour, endMinute, eventName ,court} = parseExtraText(input);
+  const {day, month, startHour, startMinute, endHour, endMinute, eventName, court} = parseExtraText(input);
 
-
-    console.log('???',month, day, startHour, startMinute, endHour, endMinute, eventName,court)
-    lessonData.push({
-      month:month,
-       day:day, 
-      location: eventName, 
-      startHour :startHour, 
-      startMinute :startMinute, 
-      endHour:endHour, 
-      endMinute:endMinute, 
-      court :court, 
-      cost: 260
-    });
-  // });
-  localStorage.setItem("lessonData", JSON.stringify(lessonData));
+  lessonData.push({
+    month: month,
+    day: day, 
+    location: eventName, 
+    startHour: startHour, 
+    startMinute: startMinute, 
+    endHour: endHour, 
+    endMinute: endMinute, 
+    court: court, 
+    cost: 260,
+    hours: ((endHour*60+endMinute) - (startHour*60+startMinute)) / 60,
+    rate: 260
+  });
+  
+  saveLessons();
   document.getElementById("lesson-input").value = "";
   renderLessons();
 }
+
 function renderLessons() {
   const container = document.getElementById("lesson-list");
   container.innerHTML = "";
@@ -698,6 +676,7 @@ function renderLessons() {
     container.innerHTML = '<div style="color:#888">沒有課堂記錄</div>';
     return;
   }
+  
   // Sort by date
   lessonData.sort((a, b) => {
     if (a.month !== b.month) return a.month - b.month;
@@ -705,8 +684,10 @@ function renderLessons() {
     if (a.startHour !== b.startHour) return a.startHour - b.startHour;
     return a.startMinute - b.startMinute;
   });
+  
   let currentMonth = null;
   let monthTotal = 0;
+  
   lessonData.forEach((lesson, idx) => {
     if (currentMonth && currentMonth !== lesson.month) {
       // Show summary for last month
@@ -716,50 +697,130 @@ function renderLessons() {
       container.appendChild(sumDiv);
       monthTotal = 0;
     }
+    
     currentMonth = lesson.month;
+    
+    // Calculate hours if not set
+    if (!lesson.hours) {
+      lesson.hours = ((lesson.endHour*60+lesson.endMinute) - (lesson.startHour*60+lesson.startMinute)) / 60;
+    }
+    
+    // Calculate cost if not set
+    if (!lesson.cost) {
+      lesson.cost = lesson.hours * (lesson.rate || 260);
+    }
+    
+    // Update month total
     monthTotal += lesson.cost;
+    
     const card = document.createElement("div");
     card.className = "lesson-card";
-    // Heading
+    card.style.display = "flex";
+    card.style.gap = "12px";
+
+    // Left side - basic info
+    const left = document.createElement("div");
+    left.style.flex = "3";
+    
     const heading = document.createElement("div");
     heading.className = "lesson-heading";
     heading.textContent = `${lesson.month}月${lesson.day}日 ${lesson.location}`;
-    card.appendChild(heading);
-    // Time
+    left.appendChild(heading);
+    
     const time = document.createElement("div");
     time.className = "lesson-time";
     time.textContent = `${pad(lesson.startHour)}:${pad(lesson.startMinute)} ~ ${pad(lesson.endHour)}:${pad(lesson.endMinute)}`;
-    card.appendChild(time);
-    // // Court
-    // const court = document.createElement("div");
-    // court.className = "lesson-court";
-    // court.textContent = lesson.court;
-    // card.appendChild(court);
-    // Fixed cost
-    const cost = document.createElement("div");
-    cost.className = "lesson-cost";
-    cost.textContent = `$${lesson.cost}`;
-    card.appendChild(cost);
-
-    const calBtn2 = document.createElement("button");
-    calBtn2.textContent = "Add Lesson to Calendar";
-    calBtn2.className = "calendar-btn";
-    calBtn2.onclick = () => addToGoogleCalendarLesson(lesson.month,lesson.day,lesson.startHour,lesson.endHour,lesson.location );
-    // Delete btn
+    left.appendChild(time);
+    
+    // const cost = document.createElement("div");
+    // cost.className = "lesson-cost";
+    // cost.textContent = `費用: $${lesson.cost}`;
+    // left.appendChild(cost);
+    
+    // Calendar button
+    const calBtn = document.createElement("button");
+    calBtn.textContent = "Add to Calendar";
+    calBtn.className = "calendar-btn";
+    calBtn.onclick = () => addToGoogleCalendarLesson(lesson.month, lesson.day, lesson.startHour, lesson.endHour, lesson.location);
+    left.appendChild(calBtn);
+    
+    // Delete button
     const delBtn = document.createElement("button");
     delBtn.className = "lesson-btn-del";
     delBtn.textContent = "✖ 刪除";
     delBtn.onclick = () => {
       if (confirm("Delete this lesson?")) {
-        lessonData.splice(idx,1);
-        localStorage.setItem("lessonData", JSON.stringify(lessonData));
+        lessonData.splice(idx, 1);
+        saveLessons();
         renderLessons();
       }
     };
-    card.appendChild(calBtn2);
-    card.appendChild(delBtn);
+    left.appendChild(delBtn);
+    
+    card.appendChild(left);
+
+    // Right side - calculation panel
+    const right = document.createElement("div");
+    right.style.flex = "1";
+    right.style.borderLeft = "1px dashed #aaa";
+    right.style.paddingLeft = "8px";
+    
+    // Hours input
+    const hoursLabel = document.createElement("label");
+    hoursLabel.textContent = "小時:";
+    hoursLabel.style.display = "block";
+    hoursLabel.style.marginBottom = "5px";
+    
+    const hoursInput = document.createElement("input");
+    hoursInput.type = "number";
+    hoursInput.min = "1";
+    hoursInput.step = "0.5";
+    hoursInput.value = lesson.hours;
+    hoursInput.style.width = "60px";
+    hoursInput.style.marginBottom = "10px";
+    hoursInput.oninput = () => {
+      lesson.hours = parseFloat(hoursInput.value) || 1;
+      lesson.cost = lesson.hours * (lesson.rate || 260);
+      saveLessons();
+      renderLessons(); // Re-render to update the display
+    };
+    
+    hoursLabel.appendChild(hoursInput);
+    right.appendChild(hoursLabel);
+    
+    // Rate input
+    const rateLabel = document.createElement("label");
+    rateLabel.textContent = "單價:";
+    rateLabel.style.display = "block";
+    rateLabel.style.marginBottom = "5px";
+    
+    const rateInput = document.createElement("input");
+    rateInput.type = "number";
+    rateInput.min = "1";
+    rateInput.value = lesson.rate || 260;
+    rateInput.style.width = "60px";
+    rateInput.style.marginBottom = "10px";
+    rateInput.oninput = () => {
+      lesson.rate = parseInt(rateInput.value) || 260;
+      lesson.cost = lesson.hours * lesson.rate;
+      saveLessons();
+      renderLessons(); // Re-render to update the display
+    };
+    
+    rateLabel.appendChild(rateInput);
+    right.appendChild(rateLabel);
+    
+    // Cost display
+    const costDisplay = document.createElement("div");
+    costDisplay.textContent = `總計: $${lesson.cost}`;
+    costDisplay.style.fontWeight = "bold";
+    costDisplay.style.marginTop = "10px";
+    right.appendChild(costDisplay);
+    
+    card.appendChild(right);
     container.appendChild(card);
   });
+  
   // Last month summary
   if (currentMonth) {
     const sumDiv = document.createElement("div");
@@ -768,7 +829,9 @@ function renderLessons() {
     container.appendChild(sumDiv);
   }
 }
+
 function pad(n) { return n < 10 ? "0"+n : n; }
+
 function clearAllLessons(){
   if(confirm("確定要清除所有課堂紀錄？")){
     lessonData = [];
@@ -776,6 +839,7 @@ function clearAllLessons(){
     renderLessons();
   }
 }
+
 function exportLessons(){
   const dataStr=JSON.stringify(lessonData,null,2); 
   const blob=new Blob([dataStr],{type:"application/json"});
@@ -784,12 +848,14 @@ function exportLessons(){
   a.href=url; a.download="lessons.json"; a.click(); 
   URL.revokeObjectURL(url);
 }
+
 function copyLessons(){
   const dataStr=JSON.stringify(lessonData,null,2);
   navigator.clipboard.writeText(dataStr)
     .then(()=>alert("✅ Copied!"))
     .catch(err=>alert("⚠️ Failed:"+err));
 }
+
 function importLessonsPrompt(){
   const input=prompt("Paste JSON:");
   if(!input) return;
@@ -797,7 +863,7 @@ function importLessonsPrompt(){
     const data=JSON.parse(input);
     if(Array.isArray(data)){
       lessonData = data;
-      localStorage.setItem("lessonData",JSON.stringify(lessonData));
+      saveLessons();
       renderLessons();
       alert("✅ Imported!");
     } else {
@@ -808,27 +874,34 @@ function importLessonsPrompt(){
   }
 }
 
+function isSameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+}
 
 function parseExtraText(text) {
-  console.log('test???')
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
-  if (lines.length < 4) 
-     console.log('行數不足')
-
-  // throw new Error('extra_text 格式錯誤，行數不足');
+  if (lines.length < 4) {
+    console.log('行數不足');
+    return {};
+  }
 
   const dateMatch = lines[1].match(/(\d{1,2})\/(\d{1,2})/);
-  if (!dateMatch)  
-  console.log('找不到日期')
-  // throw new Error('找不到日期');
+  if (!dateMatch) {
+    console.log('找不到日期');
+    return {};
+  }
 
   const day = Number(dateMatch[1]);
   const month = Number(dateMatch[2]);
 
   const timeMatch = lines[3].match(/(\d{2})(\d{2})-(\d{2})(\d{2})/);
-  if (!timeMatch) 
-    console.log('找不到時間範圍')
+  if (!timeMatch) {
+    console.log('找不到時間範圍');
+    return {};
+  }
 
   const startHour = Number(timeMatch[1]);
   const startMinute = Number(timeMatch[2]);
@@ -836,11 +909,10 @@ function parseExtraText(text) {
   const endMinute = Number(timeMatch[4]);
 
   const venue = lines[2];
-  const court =  lines.length >= 5 ? lines[4]  : '' ;
+  const court = lines.length >= 5 ? lines[4] : '';
   
-
   const eventName = `${venue}${court}上堂`;
- console.log('venue',venue)
+  
   return {
     month,
     day,
