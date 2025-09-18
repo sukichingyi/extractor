@@ -187,6 +187,12 @@
         
       </div>
     </div>
+    <div>
+  📅 Filter Month:
+  <select id="lessonMonthFilter" onchange="renderLessons()">
+    <option value="">All</option>
+  </select>
+</div>
     <div id="lesson-list"></div>
   </div>
   
@@ -648,28 +654,45 @@ function addLessons() {
   const input = document.getElementById("lesson-input").value.trim();
   if (!input) return;
   
-  const {day, month, startHour, startMinute, endHour, endMinute, eventName, court} = parseExtraText(input);
+  const parsed=parseExtraText(input); 
+  if(!parsed.day) return;
 
-  lessonData.push({
-    month: month,
-    day: day, 
-    location: eventName, 
-    startHour: startHour, 
-    startMinute: startMinute, 
-    endHour: endHour, 
-    endMinute: endMinute, 
-    court: court, 
-    cost: 260,
-    hours: ((endHour*60+endMinute) - (startHour*60+startMinute)) / 60,
-    rate: 260
-  });
-  
+  const dup=lessonData.some(l =>
+    l.month===parsed.month &&
+    l.day===parsed.day &&
+    l.startHour===parsed.startHour &&
+    l.startMinute===parsed.startMinute &&
+    l.location===parsed.eventName &&
+    l.court===parsed.court
+  );
+  if(dup){ alert("⚠️ 該課堂已存在"); return; }
+
+  const hours=((parsed.endHour*60+parsed.endMinute) - (parsed.startHour*60+parsed.startMinute))/60;
+  const rate=260;   // 每小時單價
+  const cost=hours*rate;   // ✅ 這裡改掉
+
+  // ✅ 改這一行：cost:cost，而不是 cost:260
+  lessonData.push({...parsed, location:parsed.eventName, hours, rate, cost}); 
+
   saveLessons();
   document.getElementById("lesson-input").value = "";
   renderLessons();
 }
 
 function renderLessons() {
+  const sel = document.getElementById("lessonMonthFilter");
+  const months=[...new Set(lessonData.map(l=>l.month))].sort((a,b)=>a-b);
+  const current=sel.value;
+  sel.innerHTML='<option value="">All</option>';
+  months.forEach(m=>{
+  let o=document.createElement("option");
+  o.value=m; 
+  o.textContent=m+"月"; 
+  if(m==current) o.selected=true;
+  sel.appendChild(o);
+  });
+  const filterMonth=sel.value;
+
   const container = document.getElementById("lesson-list");
   container.innerHTML = "";
   if (!lessonData.length) {
@@ -687,15 +710,18 @@ function renderLessons() {
   
   let currentMonth = null;
   let monthTotal = 0;
+  let monthHours = 0;
   
   lessonData.forEach((lesson, idx) => {
+    if(filterMonth && lesson.month != filterMonth) return;
     if (currentMonth && currentMonth !== lesson.month) {
       // Show summary for last month
       const sumDiv = document.createElement("div");
       sumDiv.className = "lesson-month-summary";
-      sumDiv.textContent = `${currentMonth}月合共：$${monthTotal}`;
+      sumDiv.textContent =`${currentMonth}月合共：${monthHours} 小時，$${monthTotal}`;
       container.appendChild(sumDiv);
       monthTotal = 0;
+      monthHours = 0;
     }
     
     currentMonth = lesson.month;
@@ -712,6 +738,7 @@ function renderLessons() {
     
     // Update month total
     monthTotal += lesson.cost;
+    monthHours += lesson.hours;
     
     const card = document.createElement("div");
     card.className = "lesson-card";
@@ -825,8 +852,8 @@ function renderLessons() {
   if (currentMonth) {
     const sumDiv = document.createElement("div");
     sumDiv.className = "lesson-month-summary";
-    sumDiv.textContent = `${currentMonth}月合共：$${monthTotal}`;
-    container.appendChild(sumDiv);
+    sumDiv.textContent = `${currentMonth}月合共：${monthHours} 小時，$${monthTotal}`;
+  container.appendChild(sumDiv);
   }
 }
 
