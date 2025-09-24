@@ -395,20 +395,40 @@ function renderLists() {
     if(!calcVisible) calcPanel.classList.add("calc-hidden");
     const priceInput=document.createElement("input");
     priceInput.type="number"; priceInput.placeholder="Price";
-    priceInput.value=list.price||extractPrice(list.header);
-    priceInput.oninput=()=>{ list.price=parseInt(priceInput.value)||0; save(); renderLists(); };
+    priceInput.value=list.price||extractPrice(list.header); 
+    priceInput.onchange=()=>{ 
+      list.price=parseInt(priceInput.value)||0; 
+      save(); 
+      renderLists(); 
+    }; 
     const personInput=document.createElement("input");
-    personInput.type="number"; personInput.min="1"; personInput.value=list.persons||guessPersons(list.header);
-    personInput.oninput=()=>{ list.persons=parseInt(personInput.value)||6; save(); renderLists(); };
+    personInput.type="number"; personInput.min="1"; personInput.value=list.persons||guessPersons(list.header); 
+    personInput.onchange=()=>{ 
+      list.persons=parseInt(personInput.value)||6; 
+      save(); 
+      renderLists();  
+    };
     const hoursInput=document.createElement("input");
     hoursInput.type="number"; hoursInput.min="1"; hoursInput.value=list.hours||extractHours(list.header);
-    hoursInput.oninput=()=>{ list.hours=parseInt(hoursInput.value)||1; save(); renderLists(); };
+    hoursInput.onchange = () => {
+      list.hours = parseFloat(hoursInput.value) || 1;
+      save(); 
+      renderLists();  
+    };
     const courtInput=document.createElement("input");
     courtInput.type="number"; courtInput.value=list.courtCost||calcCourt(list.header,hoursInput.value);
-    courtInput.oninput=()=>{ list.courtCost=parseInt(courtInput.value)||0; save(); renderLists(); };
+    courtInput.onchange=()=>{ 
+      list.courtCost=parseInt(courtInput.value)||0; 
+      save(); 
+      renderLists(); 
+    };
     const ballInput=document.createElement("input");
     ballInput.type="number"; ballInput.value=list.ballCost||25*(list.hours||1);
-    ballInput.oninput=()=>{ list.ballCost=parseInt(ballInput.value)||0; save(); renderLists(); };
+    ballInput.onchange=()=>{ 
+      list.ballCost=parseInt(ballInput.value)||0; 
+      save(); 
+      renderLists(); 
+    };
     const resultDiv=document.createElement("div");
     resultDiv.textContent="Result: -";
     const price=parseInt(priceInput.value)||0;
@@ -416,9 +436,16 @@ function renderLists() {
     const hours=parseInt(hoursInput.value)||1;
     const courtCost=parseInt(courtInput.value)||0;
     const ballCost=25*hours;
-    ballInput.value=ballCost;
-    const result=price*persons-courtCost-ballCost;
-    resultDiv.textContent=`${price}×${persons} - 場地:${courtCost} - 球:${ballCost} = 💰${result}`;
+    // ballInput.value=ballCost;
+    if (list.ballCost !== undefined) {
+      ballInput.value = list.ballCost;   // 用戶輸入過 → 儲存的值
+    } else {
+      list.ballCost = 25*hours;          // 第一次建立 → 預設值
+      ballInput.value = list.ballCost;
+    }
+
+    const result=price*persons-courtCost- (list.ballCost || 0);
+    resultDiv.textContent=`${price}×${persons} - 場地:${courtCost} - 球:${list.ballCost || 0}= 💰${result}`;
     list.net=result;
     monthTotal+=result;
     calcPanel.append("價錢:",priceInput," 人數:",personInput," 時數:",hoursInput," 場地:",courtInput," 球:",ballInput, resultDiv);
@@ -455,7 +482,14 @@ function extractHours(header){
   if(dur<=0) dur+=12;
   return dur;
 }
-function calcCourt(header,hours){ let per=59; if(/會所/.test(header)){ const dow=new Date().getDay(); per=(dow===0||dow===6)?85:75; } else if(/顥徑|恒安/.test(header)) per=39; return per*(hours||1); }
+function calcCourt(header,hours){ 
+  let per=59; 
+  if(/會所/.test(header)){ 
+    const dow=new Date().getDay(); 
+    per=(dow===0||dow===6)?85:75; 
+  }  else if(/顥徑|恒安/.test(header)) per=37; 
+  return per*(hours||1); 
+}
 function guessPersons(header){
   if(/Suki no/i.test(header)) return 7;
   if(/Suki/i.test(header)) return 6;
@@ -805,13 +839,18 @@ function renderLessons() {
     hoursInput.value = lesson.hours;
     hoursInput.style.width = "60px";
     hoursInput.style.marginBottom = "10px";
-    hoursInput.oninput = () => {
+    // hoursInput.oninput = () => {
+    //   lesson.hours = parseFloat(hoursInput.value) || 1;
+    //   lesson.cost = lesson.hours * (lesson.rate || 260);
+    //   saveLessons();
+    //   renderLessons(); // Re-render to update the display
+    // };
+    hoursInput.onchange = () => {
       lesson.hours = parseFloat(hoursInput.value) || 1;
       lesson.cost = lesson.hours * (lesson.rate || 260);
-      saveLessons();
-      renderLessons(); // Re-render to update the display
+      saveLessons(); // 失焦才存
+      costDisplay.textContent = `總計: $${lesson.cost}`;
     };
-    
     hoursLabel.appendChild(hoursInput);
     right.appendChild(hoursLabel);
     
@@ -827,12 +866,18 @@ function renderLessons() {
     rateInput.value = lesson.rate || 260;
     rateInput.style.width = "60px";
     rateInput.style.marginBottom = "10px";
-    rateInput.oninput = () => {
+    rateInput.onchange = () => {
       lesson.rate = parseInt(rateInput.value) || 260;
       lesson.cost = lesson.hours * lesson.rate;
       saveLessons();
-      renderLessons(); // Re-render to update the display
+      costDisplay.textContent = `總計: $${lesson.cost}`; // ✅ 只更新這一筆
     };
+    //     rateInput.oninput = () => {
+    //   lesson.rate = parseInt(rateInput.value) || 260;
+    //   lesson.cost = lesson.hours * lesson.rate;
+    //   saveLessons();
+    //   costDisplay.textContent = `總計: $${lesson.cost}`; // ✅ 只更新這一筆
+    // };
     
     rateLabel.appendChild(rateInput);
     right.appendChild(rateLabel);
