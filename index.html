@@ -137,33 +137,40 @@
     <button onclick="copyJSON()">Copy JSON</button>
     <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importJSONFile(event)">
     <div class="filter-box">
-      <label>🔍 Search Name: 
-        <input type="text" id="nameSearch" placeholder="Enter name..." oninput="renderLists()">
-      </label>
-      <label>📅 Filter Month: 
-        <select id="monthFilter" onchange="renderLists()">
-          <option value="">All</option>
-        </select>
-      </label>
-      <label>📍 Filter Location: 
-        <select id="locationFilter" onchange="renderLists()">
-          <option value="">All</option>
-        </select>
-        <button onclick="deleteLocation()">❌ Delete Selected</button>
-      </label>
-  
+      <div>
+        <label>🔍 Search Name: 
+          <input type="text" id="nameSearch" placeholder="Enter name..." oninput="renderLists()">
+        </label>
+        <label>📅 Filter Month: 
+          <select id="monthFilter" onchange="renderLists()">
+            <option value="">All</option>
+          </select>
+        </label>
+        <label>📍 Filter Location: 
+          <select id="locationFilter" onchange="renderLists()">
+            <option value="">All</option>
+          </select>
+          <!-- <button onclick="deleteLocation()">❌ Delete Selected</button> -->
+        </label>
+      </div>
+    
+      <div>
         <label>
-        <input type="checkbox" id="yesterdayEventsOnly" onchange="renderLists()"> 昨天的場
-      </label>
-       <label>
-        <input type="checkbox" id="todayEventsOnly" onchange="renderLists()"> 今天的場
-      </label>
-          <label>
-        <input type="checkbox" id="futureEventsOnly" onchange="renderLists()"> 將來的場
-      </label>
-      <label>
-        <input type="checkbox" id="happyEventsOnly" onchange="renderLists()"> 快樂場
-      </label>
+          <input type="checkbox" id="last2dayEventsOnly" onchange="renderLists()"> 前天的場
+        </label>
+        <label>
+          <input type="checkbox" id="yesterdayEventsOnly" onchange="renderLists()"> 昨天的場
+        </label>
+        <label>
+          <input type="checkbox" id="todayEventsOnly" onchange="renderLists()"> 今天的場
+        </label>
+        <label>
+          <input type="checkbox" id="futureEventsOnly" onchange="renderLists()"> 將來的場
+        </label>
+        <label>
+          <input type="checkbox" id="happyEventsOnly" onchange="renderLists()"> 快樂場
+        </label>
+      </div>
     </div>
     <div id="listsContainer"></div>
   </div>
@@ -232,6 +239,7 @@ function renderLists() {
   const searchName = document.getElementById("nameSearch").value.toLowerCase();
   const happyOnly = document.getElementById("happyEventsOnly").checked;
   const futureOnly = document.getElementById("futureEventsOnly").checked;
+  const last2dayOnly = document.getElementById("last2dayEventsOnly").checked;
   const yesterdayOnly = document.getElementById("yesterdayEventsOnly").checked;
   const todayOnly = document.getElementById("todayEventsOnly").checked;
   savedLists.sort((a,b)=>parseHeaderDate(a.header)-parseHeaderDate(b.header));
@@ -244,6 +252,7 @@ function renderLists() {
     if (happyOnly && !list.header.includes("快樂")) return;
     if (futureOnly && parseHeaderDate(list.header) < new Date()) return;
     // const now = new Date();
+    if (last2dayOnly && !isSameDay(parseHeaderDate(list.header),  new Date(new Date().setDate(new Date().getDate()-2)))) return;
     if (yesterdayOnly && !isSameDay(parseHeaderDate(list.header),  new Date(new Date().setDate(new Date().getDate()-1)))) return;
     if (todayOnly && !isSameDay(parseHeaderDate(list.header),  new Date())) return;
     if (searchName) {
@@ -402,7 +411,7 @@ function renderLists() {
       renderLists(); 
     }; 
     const personInput=document.createElement("input");
-    personInput.type="number"; personInput.min="1"; personInput.value=list.persons||guessPersons(list.header); 
+    personInput.type="number"; personInput.min="1"; personInput.value=list.persons||guessPersons(list); 
     personInput.onchange=()=>{ 
       list.persons=parseInt(personInput.value)||6; 
       save(); 
@@ -416,7 +425,7 @@ function renderLists() {
       renderLists();  
     };
     const courtInput=document.createElement("input");
-    courtInput.type="number"; courtInput.value=list.courtCost||calcCourt(list.header,hoursInput.value);
+    courtInput.type="number"; courtInput.value=list.courtCost||calcCourt(list.header,hoursInput.value,parseHeaderDate(list.header));
     courtInput.onchange=()=>{ 
       list.courtCost=parseInt(courtInput.value)||0; 
       save(); 
@@ -482,18 +491,35 @@ function extractHours(header){
   if(dur<=0) dur+=12;
   return dur;
 }
-function calcCourt(header,hours){ 
+function calcCourt(header,hours,thatDate){ 
+  
+  const hour=thatDate.getHours(); 
+
+  console.log('thatDate', thatDate,'|', thatDate.getHours()) 
   let per=59; 
+  if (hour<18)
+    per=51;
   if(/會所/.test(header)){ 
-    const dow=new Date().getDay(); 
-    per=(dow===0||dow===6)?85:75; 
-  }  else if(/顥徑|恒安/.test(header)) per=37; 
+    const dow=thatDate.getDay(); 
+     console.log('dow?? ',dow)
+      if (dow===0||dow===6)
+        per=85;
+      else if (hour >=18)
+        per=75;
+      else 
+        per=45;
+
+  }  else if(/顥徑|恒安/.test(header)) 
+    per=37; 
   return per*(hours||1); 
 }
-function guessPersons(header){
-  if(/Suki no/i.test(header)) return 7;
-  if(/Suki/i.test(header)) return 6;
-  return 6;
+function guessPersons(list){ 
+  const hasSukiName = list.items.some(item => 
+      item.text.toLowerCase().includes('suki')
+    );
+
+  if(hasSukiName) return 6;
+  return 7;
 }
 function parseHeaderDate(header){
   const m=header.match(/(\d{1,2})月(\d{1,2})日.*?(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?/);
