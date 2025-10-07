@@ -1153,6 +1153,11 @@ function exportfacebook(){
     alert("⚠️ 沒有未來的場次");
     return;
   }
+  var dd = String(now.getDate()).padStart(2, '0');
+  var mm = String(now.getMonth() + 1).padStart(2, '0'); //January is 0!
+  var yyyy = now.getFullYear();
+  var hr = String(now.getHours()).padStart(2, '0');
+  const version= 'VER'+yyyy+mm+dd+hr;
 
   // 根據日期排序
   futureEvents.sort((a,b) => parseHeaderDate(a.header) - parseHeaderDate(b.header));
@@ -1236,6 +1241,7 @@ function exportfacebook(){
 報名:https://wa.me/85261280075?text=我想報名___星期
 
 ${hashArray.join("")}
+${version}
 
 • 📌猜波請用舊波
 • 📌第一次報名需預繳👈👈
