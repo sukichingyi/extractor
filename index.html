@@ -40,7 +40,11 @@
     .calendar-btn:hover { background: #1e7e34; }
     .modify-btn { background: #ff9900; }
     .modify-btn:hover { background: #e68a00; }
-     .pink-btn { background:pink;color:#333}
+    .green-btn { background:greenyellow;color:#e3f829}
+    .green-btn:hover{ background:rgb(8, 211, 1);color:#f6f7ee}
+    .blue-btn { background:rgb(58, 158, 175);color:#fafafa}
+    .blue-btn:hover{ background:rgb(75, 48, 196);color:#f6f7ee}
+    .pink-btn { background:pink;color:#333}
     .pink-btn:hover { background:#e055b4; }
     .list { margin-top: 20px; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
     .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
@@ -135,6 +139,9 @@
     <button onclick="document.getElementById('importFile').click()">Import JSON</button>
     <button onclick="importJSONPrompt()">Import from Paste</button>
     <button onclick="copyJSON()">Copy JSON</button>
+    <button  class="green-btn" onclick="exportWhatsApp()">Export WhatsApp Text</button>
+<button  class="blue-btn" onclick="exportfacebook()">Export FB Text</button>
+
     <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importJSONFile(event)">
     <div class="filter-box">
       <div>
@@ -1021,6 +1028,228 @@ function parseExtraText(text) {
     eventName,
     court,
   };
+}
+
+function exportWhatsApp(){
+  // 過濾，只取將來的場
+  // let hashTag ='';
+  let hashArray = [];
+  const now = new Date();
+  const futureEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now);
+
+  if (!futureEvents.length){
+    alert("⚠️ 沒有未來的場次");
+    return;
+  }
+
+  // 根據日期排序
+  futureEvents.sort((a,b) => parseHeaderDate(a.header) - parseHeaderDate(b.header));
+
+  let text = "🔥🔥今明天有位🔥🔥\n ——  #沙田區  🏸 ——\n";
+  text += " 🌱🌱 *近初-初級* 雙打 🌱🌱\n\n";
+
+  let currentDay = "";
+  futureEvents.forEach(list=>{
+    const d = parseHeaderDate(list.header);
+    const dateStr = `*${d.getMonth()+1}月${d.getDate()}日(${["日","一","二","三","四","五","六"][d.getDay()]})*`;
+    
+
+    // Get the day of the month (1-31) and format it to two digits
+    const day = d.getDate().toString().padStart(2, '0');
+
+    // Get the month (0-11, so add 1) and format it to two digits
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    
+    // hashTag +=  `#25${month}${day}\n`;
+    const mmdd = `#25${month}${day}\n`
+    if (!hashArray.includes(mmdd)){
+      hashArray.push(mmdd)
+    }
+    
+    console.log('day',day)
+    console.log('month',month)
+    if(dateStr !== currentDay){
+      text += `\n${dateStr}\n`;
+      currentDay = dateStr;
+    }
+    console.log('list.header',list.header)
+    // 抓時間、地點、價錢
+    const timeMatch = list.header.match(/(\d{1,2})(?::?(\d{2}))?\s*[-~]\s*(\d{1,2})(?::?(\d{2}))?/);
+    let timeStr = "";
+    if(timeMatch){
+      let sh = parseInt(timeMatch[1]), eh = parseInt(timeMatch[3]);
+      timeStr = `${sh}-${eh} `;
+    }
+    let loc = list.header.replace(/\d{1,2}月\d{1,2}日/,"")
+                         .replace(/\d{1,2}[:：]?\d{0,2}\s*[-~]\s*\d{1,2}[:：]?\d{0,2}/,"")
+                         .replace(/\$?\d+/,"") 
+                          .replace(/🈶🈶/, "")
+                          .replace(/號場】/,"")
+                          //  .replace('/會所/','圓洲角附近會所') 
+                          .replace(/【/,"")
+                         .trim();
+    if (loc.includes('pm')){ 
+      loc = 'pm'+loc.split('pm')[1]
+    }
+    if (loc.includes('am')){
+      loc = 'am'+loc.split('am')[1]
+    }
+     if (loc.includes('$')){
+      loc = loc.split('$')[0]
+    }
+
+    if (loc.includes('會所')){
+      loc = loc.replace(/會所/,'圓洲角附近會所') 
+    }else{
+      loc = loc.trim() +'體育館'
+    }
+    let priceMatch = list.header.match(/\$ ?(\d+)/);
+    let price = priceMatch ? "$"+priceMatch[1] : "";
+    console.log('timeStr',timeStr)
+    console.log('loc',loc)
+    console.log('price',timeStr)
+    text += `${timeStr}${loc} ${price}\n`;
+  });
+
+  text += `
+以上用球：RSL Supreme/ classic
+----------------------------
+人數：  平日5時前6人, 其他7人 （已包括場主）
+場地 :  * 會所 指圓洲角附近私人會所,有冷氣,
+除了顥徑/恒安無冷氣,其他都有冷氣
+
+報名:https://wa.me/85292597701?text=我想報名___星期
+
+${hashArray.join(" ")}
+
+有興趣可先PM我, 謝謝！
+⚠ 注  意  事  項
+🙏第一次報名需預繳
+🙏48小時內取消需付全費
+🙏搓波請用舊波
+🙏快樂為上,黑面者恕不招待
+🙏快樂初/近初者優先
+
+⭐⭐另外有快樂場 歡迎pm 查問`;
+
+  // 複製到剪貼簿
+  navigator.clipboard.writeText(text).then(()=>{
+    alert("✅ 已複製 WhatsApp 場次文字，可以直接貼上！");
+  }).catch(err=>{
+    alert("⚠️ 複製失敗: "+err);
+  });
+}
+
+
+
+function exportfacebook(){
+  // 過濾，只取將來的場
+  // let hashTag ='';
+  let hashArray = [];
+  const now = new Date();
+  const futureEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now);
+
+  if (!futureEvents.length){
+    alert("⚠️ 沒有未來的場次");
+    return;
+  }
+
+  // 根據日期排序
+  futureEvents.sort((a,b) => parseHeaderDate(a.header) - parseHeaderDate(b.header));
+
+  let text = "🔥🔥今明天有位🔥🔥\n ——  #沙田區  🏸 ——\n";
+  text += " ～～～～～～～～～～～\n"; 
+ text += "☘️☘️ 近初 -初級 🏸☘️☘️\n"
+ text += " ～～～～～～～～～～～\n\n";
+
+  let currentDay = "";
+  futureEvents.forEach(list=>{
+    const d = parseHeaderDate(list.header);
+    const dateStr = `${d.getMonth()+1}月${d.getDate()}日(${["日","一","二","三","四","五","六"][d.getDay()]})`;
+    
+
+    // Get the day of the month (1-31) and format it to two digits
+    const day = d.getDate().toString().padStart(2, '0');
+
+    // Get the month (0-11, so add 1) and format it to two digits
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    
+    // hashTag +=  `#25${month}${day}\n`;
+    const mmdd = `#25${month}${day}\n`
+    if (!hashArray.includes(mmdd)){
+      hashArray.push(mmdd)
+    }
+    
+    console.log('day',day)
+    console.log('month',month)
+    if(dateStr !== currentDay){
+      text += `\n${dateStr}\n`;
+      currentDay = dateStr;
+    }
+    console.log('list.header',list.header)
+    // 抓時間、地點、價錢
+    const timeMatch = list.header.match(/(\d{1,2})(?::?(\d{2}))?\s*[-~]\s*(\d{1,2})(?::?(\d{2}))?/);
+    let timeStr = "";
+    if(timeMatch){
+      let sh = parseInt(timeMatch[1]), eh = parseInt(timeMatch[3]);
+      timeStr = `${sh}-${eh} `;
+    }
+    let loc = list.header.replace(/\d{1,2}月\d{1,2}日/,"")
+                         .replace(/\d{1,2}[:：]?\d{0,2}\s*[-~]\s*\d{1,2}[:：]?\d{0,2}/,"")
+                         .replace(/\$?\d+/,"") 
+                          .replace(/🈶🈶/, "")
+                          .replace(/號場】/,"")
+                          .replace(/【/,"")
+                         .trim();
+    if (loc.includes('pm')){ 
+      loc = 'pm'+loc.split('pm')[1]
+    }
+    if (loc.includes('am')){
+      loc = 'am'+loc.split('am')[1]
+    }
+     if (loc.includes('$')){
+      loc = loc.split('$')[0]
+    }
+    if (loc.includes('會所')){
+      loc = loc.replace(/會所/,'圓洲角附近會所') 
+    }else{
+      loc = loc.trim() +'體育館'
+    }
+    let priceMatch = list.header.match(/\$ ?(\d+)/);
+    let price = priceMatch ? "$"+priceMatch[1] : "";
+    console.log('timeStr',timeStr)
+    console.log('loc',loc)
+    console.log('price',timeStr)
+    text += `${timeStr}${loc} ${price}\n`;
+  });
+
+  text += `
+以上用球：RSL Supreme/ classic
+
+----------------------------
+人數：  平日5時前6人, 其他7人 （已包括場主）
+場地 :  * 會所 指圓洲角附近私人會所,有冷氣,
+除了顥徑/恒安無冷氣,其他都有冷氣
+
+#雙打羽毛球
+
+報名:https://wa.me/85261280075?text=我想報名___星期
+
+${hashArray.join("")}
+
+• 📌猜波請用舊波
+• 📌第一次報名需預繳👈👈
+• 📌顯徑/ 恒安主場無冷氣,其他都有
+• 📌如報名者未能出席，請在開波48小時前通知場主取消，否則須繳付本次活動的費用。
+
+⭐⭐另外有快樂場 歡迎pm 查問`;
+
+  // 複製到剪貼簿
+  navigator.clipboard.writeText(text).then(()=>{
+    alert("✅ 已複製 Faceboook 場次文字，可以直接貼上！");
+  }).catch(err=>{
+    alert("⚠️ 複製失敗: "+err);
+  });
 }
 </script>
 </body>
