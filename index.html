@@ -40,9 +40,12 @@
     .calendar-btn:hover { background: #1e7e34; }
     .modify-btn { background: #ff9900; }
     .modify-btn:hover { background: #e68a00; }
-    .green-btn { background:greenyellow;color:#e3f829}
-    .green-btn:hover{ background:rgb(8, 211, 1);color:#f6f7ee}
-    .blue-btn { background:rgb(58, 158, 175);color:#fafafa}
+    
+    .yellow-btn { background:greenyellow;color:#1b0000}
+    .yellow-btn:hover{ background:rgba(188, 214, 39, 0.911);color:#191a18}
+    .green-btn { background:rgb(8, 211, 1);color:#01683d}
+    .green-btn:hover{ background:rgb(4, 180, 1);color:#193f03}
+    .blue-btn { background:rgb(3, 148, 233);color:#fafafa}
     .blue-btn:hover{ background:rgb(75, 48, 196);color:#f6f7ee}
     .pink-btn { background:pink;color:#333}
     .pink-btn:hover { background:#e055b4; }
@@ -138,13 +141,11 @@
     <button class="pink-btn"  onclick="toggleCalc()">Hide Calculation</button>
     <button onclick="exportJSON()">Export JSON</button>
     <button onclick="document.getElementById('importFile').click()">Import JSON</button>
-    <button onclick="importJSONPrompt()">Import from Paste</button>
-    <button onclick="copyJSON()">Copy JSON</button>
+    <button class="yellow-btn" onclick="importJSONPrompt()">Import from Paste</button>
+    <button class="yellow-btn"onclick="copyJSON()">Copy JSON</button>
     <button  class="green-btn" onclick="exportWhatsApp()">Export WhatsApp Text</button>
 <button  class="blue-btn" onclick="exportfacebook()">Export FB Text</button>
-
-    <button  class="green-btn" onclick="test()">Test</button>
-
+ 
     <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importJSONFile(event)">
     <div class="filter-box">
       <div>
