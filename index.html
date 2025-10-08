@@ -125,6 +125,7 @@
   <div class="tab-bar">
     <button class="tab active" onclick="showPage('event')">🏸 Event 名單管理</button>
     <button class="tab" onclick="showPage('lesson')">📚 Lesson 紀錄</button>
+    <button class="tab" onclick="showPage('fb')"><img src='https://static.xx.fbcdn.net/rsrc.php/y1/r/ay1hV6OlegS.ico'></img></button>
   </div>
   
   <!-- Event Page -->
@@ -141,6 +142,8 @@
     <button onclick="copyJSON()">Copy JSON</button>
     <button  class="green-btn" onclick="exportWhatsApp()">Export WhatsApp Text</button>
 <button  class="blue-btn" onclick="exportfacebook()">Export FB Text</button>
+
+    <button  class="green-btn" onclick="test()">Test</button>
 
     <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importJSONFile(event)">
     <div class="filter-box">
@@ -209,8 +212,36 @@
 </div>
     <div id="lesson-list"></div>
   </div>
+
+  
+  <!-- Lesson Page -->
+  <div class="page" id="fb-page">
+      <div>
+<a href="https://www.facebook.com/groups/114176046084607">1 DC羽毛波交友群</a><BR>
+<a href="https://www.facebook.com/groups/1882808295330746">2 Happy Badminton Group開心羽毛球</a><BR>
+<a href="https://www.facebook.com/groups/5185407938142115">3 全港九羽毛球群（Hong Kong Badminton Club ）</a><BR>
+<a href="https://www.facebook.com/groups/637681182963962/">4 羽(毛球)戰友 Badminton Buddies (mainly 7-9pm)</a><BR>
+<a href="https://www.facebook.com/groups/360553665602193">5 羽毛球badminton～原價放場/徵腳 羽毛球～全港18區毛毛球R波腳</a><BR>
+<a href="https://www.facebook.com/groups/1680873955256800">6 羽毛球Book場齊齊打</a><BR>
+<a href="https://www.facebook.com/groups/146312127374441">7 羽毛球放場徵場 暨 約戰群組</a><BR>
+<a href="https://www.facebook.com/groups/154957644557697/">8 羽毛球活動大聯盟  </a><BR>
+<a href="https://www.facebook.com/groups/367523986706467/">9 羽毛球活動交流區</a><BR>
+<a href="https://www.facebook.com/groups/1477913715854123">10 羽動樂</a><BR>
+<a href="https://www.facebook.com/groups/1258480248884913">11 沙田羽毛球Book場齊齊打</a><BR>
+<a href="https://www.facebook.com/groups/390468642513974">12 香港羽毛球群（Hong Kong Badminton Group ）</a><BR>
+<a href="https://www.facebook.com/groups/6104478779">13 慢慢打羽毛球谷</a><BR>
+<a href="https://www.facebook.com/groups/208508509271375/">14Non-stop Badminton Activities (NBA) - 羽毛球活動 </a><BR>
+<a href="https://www.facebook.com/groups/1489485581190174/">15 羽毛球 齊齊打</a><BR>
+<a href="https://www.facebook.com/groups/221447553227054/">16 快樂級/初級~開心羽毛球group</a><BR>
+ 
+
+
+
+      </div>
+  </div>
   
 <script>
+ 
 /* -------- Tab Navigation -------- */
 function showPage(page) {
   document.querySelectorAll('.tab').forEach(tab=>tab.classList.remove('active'));
@@ -218,10 +249,13 @@ function showPage(page) {
   if(page==='event'){
     document.querySelector('.tab:nth-child(1)').classList.add('active');
     document.getElementById('event-page').classList.add('active');
-  }else{
+  }else if (page==='lesson'){
     document.querySelector('.tab:nth-child(2)').classList.add('active');
     document.getElementById('lesson-page').classList.add('active');
     renderLessons();
+  }else  {
+    document.querySelector('.tab:nth-child(3)').classList.add('active');
+    document.getElementById('fb-page').classList.add('active'); 
   }
 }
 
@@ -1148,6 +1182,7 @@ function exportfacebook(){
   let hashArray = [];
   const now = new Date();
   const futureEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now);
+  
 
   if (!futureEvents.length){
     alert("⚠️ 沒有未來的場次");
