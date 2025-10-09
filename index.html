@@ -1086,6 +1086,8 @@ function exportWhatsApp(){
   let hashArray = [];
   const now = new Date();
   const futureEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now);
+  const happyEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now && list.header.includes('快樂'));
+
 
   if (!futureEvents.length){
     alert("⚠️ 沒有未來的場次");
@@ -1098,7 +1100,15 @@ function exportWhatsApp(){
   let text = "🔥🔥今明天有位🔥🔥\n ——  #沙田區  🏸 ——\n";
   text += " 🌱🌱 *近初-初級* 雙打 🌱🌱\n\n";
 
+  let happyText =''
+  if (happyEvents.length){
+    happyText += " --------------------\n"; 
+    happyText += "🌱🌱 *快樂-近初* 雙打🌱🌱\n"
+    happyText += " --------------------\n";
+  }
+
   let currentDay = "";
+  let currentHappyDay = "";
   futureEvents.forEach(list=>{
     const d = parseHeaderDate(list.header);
     const dateStr = `*${d.getMonth()+1}月${d.getDate()}日(${["日","一","二","三","四","五","六"][d.getDay()]})*`;
@@ -1115,14 +1125,18 @@ function exportWhatsApp(){
     if (!hashArray.includes(mmdd)){
       hashArray.push(mmdd)
     }
-    
-    console.log('day',day)
-    console.log('month',month)
-    if(dateStr !== currentDay){
-      text += `\n${dateStr}\n`;
-      currentDay = dateStr;
+    //check if repeated date
+    if(list.header.includes('快樂')){
+      if(dateStr !== currentHappyDay){ 
+        happyText +=`\n${dateStr}\n`;  
+        currentHappyDay = dateStr;
+      }
+    }else{
+      if(dateStr !== currentDay){ 
+          text += `\n${dateStr}\n`;  
+          currentDay = dateStr;
+      }
     }
-    console.log('list.header',list.header)
     // 抓時間、地點、價錢
     const timeMatch = list.header.match(/(\d{1,2})(?::?(\d{2}))?\s*[-~]\s*(\d{1,2})(?::?(\d{2}))?/);
     let timeStr = "";
@@ -1153,14 +1167,23 @@ function exportWhatsApp(){
     }
     let priceMatch = list.header.match(/\$ ?(\d+)/);
     let price = priceMatch ? "$"+priceMatch[1] : "";
-    console.log('timeStr',timeStr)
-    console.log('loc',loc)
-    console.log('price',timeStr)
-    text += `${timeStr}${loc} ${price}\n`;
+    
+    if (!list.header.includes('快樂')){ 
+      text += `${timeStr}${loc} ${price}\n`;
+    }
+    else{
+       happyText += `${timeStr}${loc} ${price}\n`;
+    }
   });
 
   text += `
-以上用球：RSL Supreme/ classic
+以上用球：RSL Supreme/ Classic
+`;
+  if (happyEvents.length){
+    happyText +=`\n以上用球：RSL 6/ classic`
+  }
+ 
+  text += `  ${happyText}
 ----------------------------
 人數：  平日5時前6人, 其他7人 （已包括場主）
 場地 :  * 會所 指圓洲角附近私人會所,有冷氣,
