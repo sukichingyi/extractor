@@ -71,9 +71,10 @@
     .cat-初中 { color: purple; font-weight: bold; }
     .categories-hidden { display: none !important; visibility: hidden !important; pointer-events: none !important; height: 0 !important; width: 0 !important; opacity: 0 !important; }
     .filter-box { margin:20px 0; padding:10px; background:#fff; border:1px solid #ccc; border-radius:6px; display:inline-block; }
-    .filter-box select { padding:6px; border-radius:4px; border:1px solid #aaa; background:#f0f0f0; }
+      select { padding:6px; border-radius:4px; border:1px solid #aaa; background:#f0f0f0; }
     .month-summary { margin-top: 10px; font-weight: bold; color:#333; background:#eef; padding:6px; border-radius:4px; }
     .header-快樂 { background: #006400 !important; }
+    
     /* Mobile responsive styles */
     @media (max-width: 800px) {
       .event-wrapper { flex-direction:column; }
@@ -121,6 +122,9 @@
       .lesson-heading { font-size: 1rem; }
       .lesson-cost { font-size: 1rem; }
     }
+    #calendar-container table {border:1px solid #ccc;font-size:0.9rem;}
+#calendar-container th, #calendar-container td {width:14%;text-align:left;vertical-align:top;}
+#calendar-container td:hover {background:#f7f6f4; }
   </style>
 </head>
 <body>
@@ -129,9 +133,20 @@
     <button class="tab active" onclick="showPage('event')">🏸 Event 名單管理</button>
     <button class="tab" onclick="showPage('lesson')">📚 Lesson 紀錄</button>
     <button class="tab" onclick="showPage('fb')"><img src='https://static.xx.fbcdn.net/rsrc.php/y1/r/ay1hV6OlegS.ico'></img></button>
+    <button class="tab" onclick="showPage('calendar')">🗓 Calendar</button>
+
   </div>
+  <!-- Add this new page -->
+<div class="page" id="calendar-page">
+  <h2>🗓 月曆總覽 (Event + Lesson)</h2>
   
+    <button    onclick="showEvent()">Show Event</button>
+    <button  class="yellow-btn" onclick="showLesson()">Show Lesson</button>
+  <select id="calendar-month-select" onchange="renderCalendar()"></select>
+  <div id="calendar-container" style="margin-top:20px;"></div>
+</div>
   <!-- Event Page -->
+   
   <div class="page active" id="event-page">
     <h2>Add New Events</h2>
     <textarea id="inputText" placeholder="Paste events here..."></textarea><br>
@@ -244,21 +259,21 @@
 <script>
  
 /* -------- Tab Navigation -------- */
-function showPage(page) {
-  document.querySelectorAll('.tab').forEach(tab=>tab.classList.remove('active'));
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  if(page==='event'){
-    document.querySelector('.tab:nth-child(1)').classList.add('active');
-    document.getElementById('event-page').classList.add('active');
-  }else if (page==='lesson'){
-    document.querySelector('.tab:nth-child(2)').classList.add('active');
-    document.getElementById('lesson-page').classList.add('active');
-    renderLessons();
-  }else  {
-    document.querySelector('.tab:nth-child(3)').classList.add('active');
-    document.getElementById('fb-page').classList.add('active'); 
-  }
-}
+// function showPage(page) {
+//   document.querySelectorAll('.tab').forEach(tab=>tab.classList.remove('active'));
+//   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+//   if(page==='event'){
+//     document.querySelector('.tab:nth-child(1)').classList.add('active');
+//     document.getElementById('event-page').classList.add('active');
+//   }else if (page==='lesson'){
+//     document.querySelector('.tab:nth-child(2)').classList.add('active');
+//     document.getElementById('lesson-page').classList.add('active');
+//     renderLessons();
+//   }else  {
+//     document.querySelector('.tab:nth-child(3)').classList.add('active');
+//     document.getElementById('fb-page').classList.add('active'); 
+//   }
+// }
 
 /* -------- Event Page -------- */
 let savedLists = JSON.parse(localStorage.getItem("savedLists") || "[]");
@@ -1292,6 +1307,138 @@ ${version}
   }).catch(err=>{
     alert("⚠️ 複製失敗: "+err);
   });
+}
+
+// ---- Add new Calendar page logic ----
+function showPage(page){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  if(page==="event"){document.querySelector(".tab:nth-child(1)").classList.add("active");document.getElementById("event-page").classList.add("active");}
+  else if(page==="lesson"){document.querySelector(".tab:nth-child(2)").classList.add("active");document.getElementById("lesson-page").classList.add("active");renderLessons();}
+  else if(page==="fb"){document.querySelector(".tab:nth-child(3)").classList.add("active");document.getElementById("fb-page").classList.add("active");}
+  else if(page==="calendar"){document.querySelector(".tab:nth-child(4)").classList.add("active");document.getElementById("calendar-page").classList.add("active");initCalendar();}
+}
+
+// ---- Calendar Rendering ----
+function initCalendar(){
+  const sel=document.getElementById("calendar-month-select");
+  sel.innerHTML="";
+  // Collect all unique months from both lessonData + savedLists
+  const months=new Set();
+  savedLists.forEach(l=>{
+    const dm=l.header.match(/(\d{1,2})月/);
+    if(dm) months.add(parseInt(dm[1]));
+  });
+  lessonData.forEach(l=>months.add(l.month));
+  const arr=[...months].sort((a,b)=>a-b);
+  const nowM=new Date().getMonth()+1;
+  arr.forEach(m=>{
+    const opt=document.createElement("option");
+    opt.value=m;
+    opt.textContent=m+"月";
+    if(m==nowM) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  renderCalendar();
+}
+
+
+let lessonVisible = true;
+let eventVisible = true;
+function showEvent(){  eventVisible=!eventVisible; renderCalendar( ); }
+function showLesson(){ lessonVisible=!lessonVisible; renderCalendar(); }
+function renderCalendar(){
+  let currentMonth = null;
+  let eventMonthNet = 0;
+  let lessonMonthTotal = 0;
+  let lessonMonthHours = 0;
+  const month=parseInt(document.getElementById("calendar-month-select").value);
+  const container=document.getElementById("calendar-container");
+  container.innerHTML="";
+  if(!month){container.textContent="請選擇月份";return;}
+  const year=new Date().getFullYear();
+  const first=new Date(year,month-1,1);
+  const firstDay=first.getDay(); // 0-6
+  const daysInMonth=new Date(year,month,0).getDate();
+  // grid
+  const table=document.createElement("table");
+  table.style.width="100%";
+  table.style.borderCollapse="collapse";
+  table.innerHTML="<thead><tr style='background:#ddd;text-align:center;'><th>日</th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th></tr></thead>";
+  const tbody=document.createElement("tbody");
+  let row=document.createElement("tr");
+  for(let i=0;i<firstDay;i++) row.appendChild(document.createElement("td"));
+  for(let d=1;d<=daysInMonth;d++){
+    const td=document.createElement("td");
+    td.style.verticalAlign="top";
+    td.style.height="100px";
+    td.style.border="1px solid #ccc";
+    td.style.padding="4px";
+    td.innerHTML=`<div style='font-weight:bold;'>${d}</div>`;
+    // ---- event summary ----
+
+    if (eventVisible){
+      const evHere=savedLists.filter(ev=>{
+        const parsed=parseHeaderDate(ev.header);
+        return parsed.getMonth()+1===month && parsed.getDate()===d;
+      });
+      evHere.forEach(ev=>{
+        const div=document.createElement("div");
+        div.textContent="🏸"+ev.header.replace(/🈶🈶/,'').replace(/🈵🈵/,'').replace(/\d{1,2}月\d{1,2}日/,"").split("）")[1];
+        div.textContent=div.textContent.split("$")[0]
+        // div.textContent= "🏸"+ev.header;
+        div.title=ev.header;
+        div.style.background="#d1ecf1";
+        div.style.borderRadius="3px";
+        div.style.margin="2px 0";
+        div.style.fontSize="0.8em";
+        div.style.padding="1px 3px";
+        td.appendChild(div);
+        eventMonthNet += ev.net;
+      });
+    }
+    if (lessonVisible){ 
+  
+      // ---- lesson summary ----
+      const lessonsHere=lessonData.filter(l=>l.month===month && l.day===d);
+      lessonsHere.forEach(ls=>{
+        const div=document.createElement("div");
+        div.textContent="📚" + pad(ls.startHour) +"-"+ pad(ls.endHour)+ ls.location.split("上堂")[0];
+        div.textContent= div.textContent.replace(/體育館/,'') +'上堂'
+        div.title=`${ls.month}月${ls.day}日 ${ls.location} ${pad(ls.startHour)}:${pad(ls.startMinute)}-${pad(ls.endHour)}:${pad(ls.endMinute)} ($${ls.cost})`;
+        div.style.background="greenyellow";
+        div.style.borderRadius="3px";
+        div.style.margin="2px 0";
+        div.style.fontSize="0.8em";
+        div.style.padding="1px 3px";
+        td.appendChild(div);
+
+         // Update month total
+          lessonMonthTotal += ls.cost;
+          lessonMonthHours += ls.hours;
+      
+      });
+    }
+    row.appendChild(td);
+    if((d+firstDay)%7===0){tbody.appendChild(row);row=document.createElement("tr");}
+  }
+  if(row.children.length) while(row.children.length<7) row.appendChild(document.createElement("td")),tbody.appendChild(row);
+
+  //event summary
+  const sumEventDiv=document.createElement("div");
+  sumEventDiv.className="month-summary";
+  sumEventDiv.textContent=`${month}月 總淨利: 💰${eventMonthNet}`;
+ 
+  //lesson summary
+  const sumLessonDiv = document.createElement("div");
+  sumLessonDiv.className = "lesson-month-summary";
+  sumLessonDiv.textContent = `${month}月合共：${lessonMonthHours} 小時，$${lessonMonthTotal}`;
+ 
+  table.appendChild(tbody);
+  container.appendChild(table);
+  container.appendChild(sumEventDiv);
+  container.appendChild(sumLessonDiv);
+  
 }
 </script>
 </body>
