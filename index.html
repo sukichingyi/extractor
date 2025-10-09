@@ -552,13 +552,13 @@ function calcCourt(header,hours,thatDate){
   
   const hour=thatDate.getHours(); 
 
-  console.log('thatDate', thatDate,'|', thatDate.getHours()) 
+  // console.log('thatDate', thatDate,'|', thatDate.getHours()) 
   let per=59; 
   if (hour<18)
     per=51;
   if(/會所/.test(header)){ 
     const dow=thatDate.getDay(); 
-     console.log('dow?? ',dow)
+    //  console.log('dow?? ',dow)
       if (dow===0||dow===6)
         per=85;
       else if (hour >=18)
@@ -1134,9 +1134,7 @@ function exportWhatsApp(){
                          .replace(/\d{1,2}[:：]?\d{0,2}\s*[-~]\s*\d{1,2}[:：]?\d{0,2}/,"")
                          .replace(/\$?\d+/,"") 
                           .replace(/🈶🈶/, "")
-                          .replace(/號場】/,"")
-                          //  .replace('/會所/','圓洲角附近會所') 
-                          .replace(/【/,"")
+                          .replace(/【[^】]*號場】/g,"") 
                          .trim();
     if (loc.includes('pm')){ 
       loc = 'pm'+loc.split('pm')[1]
@@ -1197,13 +1195,14 @@ function exportfacebook(){
   // let hashTag ='';
   let hashArray = [];
   const now = new Date();
-  const futureEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now);
-  
+  const futureEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now );
+  const happyEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now && list.header.includes('快樂'));
 
   if (!futureEvents.length){
     alert("⚠️ 沒有未來的場次");
     return;
   }
+  
   var dd = String(now.getDate()).padStart(2, '0');
   var mm = String(now.getMonth() + 1).padStart(2, '0'); //January is 0!
   var yyyy = now.getFullYear();
@@ -1214,13 +1213,24 @@ function exportfacebook(){
   futureEvents.sort((a,b) => parseHeaderDate(a.header) - parseHeaderDate(b.header));
 
   let text = ".\n 🔥🔥今明天有位🔥🔥\n ——  #沙田區  🏸 ——\n";
-  text += " ～～～～～～～～～～～\n"; 
- text += "☘️☘️ 近初 -初級 🏸☘️☘️\n"
- text += " ～～～～～～～～～～～\n\n";
+    text += " ～～～～～～～～～～～\n"; 
+    text += "☘️☘️ 近初 -初級 🏸☘️☘️\n"
+    text += " ～～～～～～～～～～～\n";
 
+  let happyText =''
+  if (happyEvents.length){
+    happyText += " ～～～～～～～～～～～\n"; 
+    happyText += "☘️☘️ 快樂-近初🏸☘️☘️\n"
+    happyText += " ～～～～～～～～～～～\n";
+  }
+
+  console.log('futureEvents',futureEvents)
+  console.log('happyText',happyText)
   let currentDay = "";
+  let currentHappyDay = "";
   futureEvents.forEach(list=>{
     const d = parseHeaderDate(list.header);
+    
     const dateStr = `${d.getMonth()+1}月${d.getDate()}日(${["日","一","二","三","四","五","六"][d.getDay()]})`;
     
 
@@ -1235,14 +1245,19 @@ function exportfacebook(){
     if (!hashArray.includes(mmdd)){
       hashArray.push(mmdd)
     }
-    
-    console.log('day',day)
-    console.log('month',month)
-    if(dateStr !== currentDay){
-      text += `\n${dateStr}\n`;
-      currentDay = dateStr;
+    //check if repeated date
+    if(list.header.includes('快樂')){
+      if(dateStr !== currentHappyDay){ 
+        happyText +=`\n${dateStr}\n`;  
+        currentHappyDay = dateStr;
+      }
+    }else{
+      if(dateStr !== currentDay){ 
+          text += `\n${dateStr}\n`;  
+          currentDay = dateStr;
+      }
     }
-    console.log('list.header',list.header)
+    
     // 抓時間、地點、價錢
     const timeMatch = list.header.match(/(\d{1,2})(?::?(\d{2}))?\s*[-~]\s*(\d{1,2})(?::?(\d{2}))?/);
     let timeStr = "";
@@ -1253,9 +1268,8 @@ function exportfacebook(){
     let loc = list.header.replace(/\d{1,2}月\d{1,2}日/,"")
                          .replace(/\d{1,2}[:：]?\d{0,2}\s*[-~]\s*\d{1,2}[:：]?\d{0,2}/,"")
                          .replace(/\$?\d+/,"") 
-                          .replace(/🈶🈶/, "")
-                          .replace(/號場】/,"")
-                          .replace(/【/,"")
+                          .replace(/🈶🈶/, "") 
+                          .replace(/【[^】]*號場】/g,"") 
                          .trim();
     if (loc.includes('pm')){ 
       loc = 'pm'+loc.split('pm')[1]
@@ -1272,15 +1286,26 @@ function exportfacebook(){
       loc = loc.trim() +'體育館'
     }
     let priceMatch = list.header.match(/\$ ?(\d+)/);
-    let price = priceMatch ? "$"+priceMatch[1] : "";
-    console.log('timeStr',timeStr)
-    console.log('loc',loc)
-    console.log('price',timeStr)
-    text += `${timeStr}${loc} ${price}\n`;
+    let price = priceMatch ? "$"+priceMatch[1] : ""; 
+    if (!list.header.includes('快樂')){ 
+      text += `${timeStr}${loc} ${price}\n`;
+    }
+    else{
+       happyText += `${timeStr}${loc} ${price}\n`;
+    }
+
   });
 
   text += `
 以上用球：RSL Supreme/ classic
+`;
+
+  if (happyEvents.length){
+    happyText +=`\n以上用球：RSL 6/ classic`
+  }
+
+  console.log('happyText',happyText)
+  text += `  ${happyText}
 
 ----------------------------
 人數：  平日5時前6人, 其他7人 （已包括場主）
