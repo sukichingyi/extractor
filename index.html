@@ -1111,9 +1111,12 @@ function exportWhatsApp(){
   let currentHappyDay = "";
   futureEvents.forEach(list=>{
     const d = parseHeaderDate(list.header);
+    console.log('d',d);
+
     const dateStr = `*${d.getMonth()+1}月${d.getDate()}日(${["日","一","二","三","四","五","六"][d.getDay()]})*`;
     
 
+    console.log('dateStr',dateStr);
     // Get the day of the month (1-31) and format it to two digits
     const day = d.getDate().toString().padStart(2, '0');
 
@@ -1430,9 +1433,13 @@ function renderCalendar(){
         const parsed=parseHeaderDate(ev.header);
         return parsed.getMonth()+1===month && parsed.getDate()===d;
       });
-      evHere.forEach(ev=>{
-        const div=document.createElement("div");
-        div.textContent="🏸"+ev.header.replace(/🈶🈶/,'').replace(/🈵🈵/,'').replace(/\d{1,2}月\d{1,2}日/,"").split("）")[1];
+      evHere.forEach(ev=>{ 
+        const div=document.createElement("div");   
+        div.textContent= ev.header.replace(/🈶🈶/,'').replace(/🈵🈵/,'').replace(/\d{1,2}月\d{1,2}日/,"").split("）")[1]; 
+        if (!div.textContent ){ 
+            div.textContent= ev.header.replace(/🈶🈶/,'').replace(/🈵🈵/,'').replace(/\d{1,2}月\d{1,2}日/,"").split(")")[1];
+        }  
+        div.textContent="🏸"+  div.textContent
         div.textContent=div.textContent.split("$")[0]
         // div.textContent= "🏸"+ev.header;
         div.title=ev.header;
