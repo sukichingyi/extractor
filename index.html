@@ -159,6 +159,7 @@
     <button class="yellow-btn" onclick="importJSONPrompt()">Import from Paste</button>
     <button class="yellow-btn"onclick="copyJSON()">Copy JSON</button>
     <button  class="green-btn" onclick="exportWhatsApp()">Export WhatsApp Text</button>
+        <button  class="green-btn" onclick="exportWhatsAppD()">Export WhatsApp Details</button>
 <button  class="blue-btn" onclick="exportfacebook()">Export FB Text</button>
  
     <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importJSONFile(event)">
@@ -277,8 +278,8 @@
 
 /* -------- Event Page -------- */
 let savedLists = JSON.parse(localStorage.getItem("savedLists") || "[]");
-let categoriesVisible = true;
-let calcVisible = true;
+let categoriesVisible = false;
+let calcVisible = false;
 let savedLocations = JSON.parse(localStorage.getItem("savedLocations") || "[]");
 const categories = [
   { key: "快樂", class: "cat-快樂" },
@@ -1214,7 +1215,102 @@ ${hashArray.join(" ")}
   });
 }
 
+ function exportWhatsAppD() {
+  const now = new Date();
+  const futureEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now);
 
+  if (!futureEvents.length) {
+    alert("⚠️ 沒有未來的場次");
+    return;
+  }
+
+  // 按日期排序
+  futureEvents.sort((a, b) => parseHeaderDate(a.header) - parseHeaderDate(b.header));
+
+  // 開頭樣式
+  let text = "🏸🏸初級雙打🏸🏸\n\n";
+
+  const hashArray = [];
+  const weekDay = ["日", "一", "二", "三", "四", "五", "六"];
+
+  futureEvents.forEach(list => {
+    const d = parseHeaderDate(list.header);
+    const y = d.getFullYear().toString().slice(2);
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    const weekday = weekDay[d.getDay()];
+    const mmdd = `#${y}${String(m).padStart(2, "0")}${String(day).padStart(2, "0")}`;
+
+    // 時間：抓 "9-11pm" or "6-8am"
+    const timeMatch = list.header.match(/(\d{1,2})(?::?(\d{2}))?\s*[-~]\s*(\d{1,2})(?::?(\d{2}))?/);
+    let timeStr = "";
+    if (timeMatch) {
+      const sh = parseInt(timeMatch[1]), eh = parseInt(timeMatch[3]);
+      if (/pm/i.test(list.header)) {
+        timeStr = `${sh}-${eh}pm`;
+      } else if (/am/i.test(list.header)) {
+        timeStr = `${sh}-${eh}am`;
+      } else {
+        timeStr = `${sh}-${eh}`;
+      }
+    }
+
+    // 地點清理
+    let loc = list.header
+      .replace(/\d{1,2}月\d{1,2}日/, "")
+      .replace(/\d{1,2}[:：]?\d{0,2}\s*[-~]\s*\d{1,2}[:：]?\d{0,2}/, "")
+      .replace(/\$?\d+/, "")
+      .replace(/🈶🈶/, "")
+      .replace(/【[^】]*號場】/g, "")
+      .trim();
+
+    // 清理 am/pm 重覆區段
+    if (loc.includes("pm")) loc = loc.split("pm")[1];
+    if (loc.includes("am")) loc = loc.split("am")[1];
+    if (loc.includes("$")) loc = loc.split("$")[0];
+
+    // 加上體育館 or 會所顯示
+    if (loc.includes("會所")) {
+      loc = "圓洲角附近會所";
+    } else {
+      loc = (loc.trim().length ? loc.trim() : "圓洲角") + "體育館";
+    }
+
+    // 費用
+    const priceMatch = list.header.match(/\$ ?(\d+)/);
+    const price = priceMatch ? "$" + priceMatch[1] : "";
+
+    // 組合模板
+    text += `日期： ${m}月${day}日(${weekday})\n`;
+    text += `時間： ${timeStr}\n`;
+    text += `地點： ${loc}\n`;
+    text += `人數： 7人 (已包括場主)\n`;
+    text += `費用： ${price}\n\n`;
+
+    if (!hashArray.includes(mmdd)) hashArray.push(mmdd);
+  });
+
+  // 結尾附註
+  text += `用球： RSL Supreme / Classic
+*場地 :  除了顥徑/恒安無冷氣,其他都有冷氣
+
+報名:https://wa.me/85292597701?text=我想報名___星期-地點-
+
+${hashArray.join(" ")}
+
+有興趣可先PM我, 謝謝！
+⚠ 注  意  事  項
+🙏第一次報名需預繳
+🙏48小時內取消需付全費
+🙏搓波請用舊波
+🙏快樂為上,黑面者恕不招待
+🙏快樂初/近初者優先
+`;
+
+  navigator.clipboard.writeText(text)
+    .then(() => alert("✅ 已複製 WhatsApp 場次文字，可以直接貼上！"))
+    .catch(err => alert("⚠️ 複製失敗: " + err));
+}
 
 function exportfacebook(){
   // 過濾，只取將來的場
