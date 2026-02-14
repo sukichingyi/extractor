@@ -182,6 +182,9 @@
       </div>
     
       <div>
+         <label>
+          <input type="checkbox" id="last7dayEventsOnly" onchange="renderLists()"> 7天內的場
+        </label>
         <label>
           <input type="checkbox" id="last2dayEventsOnly" onchange="renderLists()"> 前天的場
         </label>
@@ -251,10 +254,19 @@
 <a href="https://www.facebook.com/groups/1489485581190174/">15 羽毛球 齊齊打</a><BR>
 <a href="https://www.facebook.com/groups/221447553227054/">16 快樂級/初級~開心羽毛球group</a><BR>
  
+  </div>
+  <h1>匹克球</h1> 
+<a href="https://www.facebook.com/groups/3678086392502993">1 HK Pickleball Battles (匹克球約戰區)</a><BR>
+<a href="https://www.facebook.com/groups/1586305869028998">2 香港匹克球平民區 </a><BR>
+<a href="https://www.facebook.com/groups/1186302296555827">3 香港匹克球約戰谷 </a><BR>
+<a href="https://www.facebook.com/groups/854393116711719/">4 香港匹克球關注組 </a><BR>
+<a href="https://www.facebook.com/groups/1142671344366331">5 香港匹克球自由約戰 Hong Kong Pickleball Game </a><BR>
+<a href="https://www.facebook.com/groups/1731015967506516">6 香港奶茶匹克球俱樂部 (HK Milk Tea Pickleball Club)</a><BR>
+<a href="https://www.facebook.com/groups/1281712903498519">7 HK pickle ball players </a><BR>
+<a href="https://www.facebook.com/groups/22/">8    </a><BR>
+  </div>
 
 
-
-      </div>
   </div>
   
 <script>
@@ -277,6 +289,26 @@
 // }
 
 /* -------- Event Page -------- */
+
+// ✅ New base year (for new records created)
+const defaultYear = 2026;
+
+// ✅ Migration helper – assign missing year = 2025
+function ensureYearFields() {
+  // For Events
+  savedLists = JSON.parse(localStorage.getItem("savedLists") || "[]");
+  savedLists.forEach(ev => {
+    if (!ev.year) ev.year = 2025;
+  });
+  localStorage.setItem("savedLists", JSON.stringify(savedLists));
+
+  // For Lessons
+  lessonData = JSON.parse(localStorage.getItem("lessonData") || "[]");
+  lessonData.forEach(l => {
+    if (!l.year) l.year = 2025;
+  });
+  localStorage.setItem("lessonData", JSON.stringify(lessonData));
+} 
 let savedLists = JSON.parse(localStorage.getItem("savedLists") || "[]");
 let categoriesVisible = false;
 let calcVisible = false;
@@ -290,43 +322,67 @@ const categories = [
 function renderLists() {
   const container = document.getElementById("listsContainer");
   container.innerHTML = "";
+  
+  // ✅ Updated: month filter now uses yyyy-mm format
   populateMonthFilter();
   populateLocationFilter();
-  const selectedMonth = document.getElementById("monthFilter").value;
+  const selectedMonthValue = document.getElementById("monthFilter").value;
   const selectedLoc = document.getElementById("locationFilter").value;
   const searchName = document.getElementById("nameSearch").value.toLowerCase();
   const happyOnly = document.getElementById("happyEventsOnly").checked;
   const futureOnly = document.getElementById("futureEventsOnly").checked;
+  const last7dayOnly = document.getElementById("last7dayEventsOnly").checked;
   const last2dayOnly = document.getElementById("last2dayEventsOnly").checked;
   const yesterdayOnly = document.getElementById("yesterdayEventsOnly").checked;
   const todayOnly = document.getElementById("todayEventsOnly").checked;
-  savedLists.sort((a,b)=>parseHeaderDate(a.header)-parseHeaderDate(b.header));
-  let currentMonth=null;
-  let monthTotal=0;
+  
+  // ✅ New: extract filter year-month if user selected one
+  const [selectedYear, selectedMonth] = selectedMonthValue
+    ? selectedMonthValue.split("-").map(Number)
+    : [null, null];
+
+  // keep same sort logic (use event’s own year)
+  savedLists.sort((a, b) => parseHeaderDate(a.header, a.year) - parseHeaderDate(b.header, b.year));
+
+  let currentMonth = null;
+  let monthTotal = 0;
+  
+  
   savedLists.forEach((list, listIndex) => {
-    const listMonth=(list.header.match(/(\d{1,2})月/)||[])[1];
-    if (selectedMonth && listMonth!==selectedMonth) return;
+    const eventDate = parseHeaderDate(list.header, list.year);
+    const listYear = eventDate.getFullYear(); // ✅ added
+    const listMonth = eventDate.getMonth() + 1; // ✅ added
+    // ❌ old:  const listMonth=(list.header.match(/(\d{1,2})月/)||[])[1];
+    
+    // ✅ new: filter by real year + month
+    if (selectedYear && listYear !== selectedYear) return;
+    if (selectedMonth && listMonth !== selectedMonth) return;
+
     if (selectedLoc && !list.header.includes(selectedLoc)) return; 
     if (happyOnly && !list.header.includes("快樂")) return;
-    if (futureOnly && parseHeaderDate(list.header) < new Date()) return;
-    // const now = new Date();
-    if (last2dayOnly && !isSameDay(parseHeaderDate(list.header),  new Date(new Date().setDate(new Date().getDate()-2)))) return;
-    if (yesterdayOnly && !isSameDay(parseHeaderDate(list.header),  new Date(new Date().setDate(new Date().getDate()-1)))) return;
-    if (todayOnly && !isSameDay(parseHeaderDate(list.header),  new Date())) return;
+    if (futureOnly && eventDate < new Date()) return;
+    if (last7dayOnly && !isRangeDay(eventDate, new Date(new Date().setDate(new Date().getDate() - 7)), new Date(new Date().setDate(new Date().getDate() )))) return;
+    if (last2dayOnly && !isSameDay(eventDate, new Date(new Date().setDate(new Date().getDate() - 2)))) return;
+    if (yesterdayOnly && !isSameDay(eventDate, new Date(new Date().setDate(new Date().getDate() - 1)))) return;
+    if (todayOnly && !isSameDay(eventDate, new Date())) return;
     if (searchName) {
       const hasName = list.items.some(item => 
         item.text.toLowerCase().includes(searchName)
       );
       if (!hasName) return;
     }
-    if(currentMonth && currentMonth!==listMonth){
-      const summary=document.createElement("div");
-      summary.className="month-summary";
-      summary.textContent=`${currentMonth}月 總淨利: 💰${monthTotal}`;
-      container.appendChild(summary);
-      monthTotal=0;
-    }
-    currentMonth=listMonth;
+
+    // // ✅ keep same monthly summary logic
+    // if (currentMonth && currentMonth !== listMonth) {
+    //   const summary = document.createElement("div");
+    //   summary.className = "month-summary";
+    //   summary.textContent = `${selectedYear || defaultYear}-${String(currentMonth).padStart(2,'0')} 總淨利: 💰${monthTotal}`;
+    //   container.appendChild(summary);
+    //   monthTotal = 0;
+    // }
+    // currentMonth = listMonth;
+
+    /** -------- ORIGINAL RENDER CODE (KEEP UNCHANGED) -------- **/
     const listDiv = document.createElement("div");
     listDiv.className = "list";
     const headerDiv = document.createElement("div");
@@ -334,6 +390,7 @@ function renderLists() {
     const header = document.createElement("h3");
     header.textContent = list.header;
     if (list.header.includes("快樂")) header.classList.add("header-快樂");
+
     const btns = document.createElement("div");
     btns.className = "header-buttons";
     const upBtn = document.createElement("button");
@@ -378,6 +435,7 @@ function renderLists() {
     btns.append(upBtn, downBtn, delBtn, calBtn, addRowBtn, modifyBtn);
     headerDiv.append(header, btns);
     listDiv.appendChild(headerDiv);
+    
     const wrapper=document.createElement("div");
     wrapper.className="event-wrapper";
     const contentDiv=document.createElement("div");
@@ -521,10 +579,12 @@ function renderLists() {
     listDiv.appendChild(wrapper);
     container.appendChild(listDiv);
   });
-  if(currentMonth){
-    const summary=document.createElement("div");
-    summary.className="month-summary";
-    summary.textContent=`${currentMonth}月 總淨利: 💰${monthTotal}`;
+
+  // ✅ Keep final month summary
+  if (currentMonth) {
+    const summary = document.createElement("div");
+    summary.className = "month-summary";
+    summary.textContent = `${selectedYear || defaultYear}-${String(currentMonth).padStart(2,'0')} 總淨利: 💰${monthTotal}`;
     container.appendChild(summary);
   }
 }
@@ -579,32 +639,64 @@ function guessPersons(list){
   if(hasSukiName) return 6;
   return 7;
 }
-function parseHeaderDate(header){
-  const m=header.match(/(\d{1,2})月(\d{1,2})日.*?(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?/);
-  if(!m) return new Date(2099,11,31);
-  const month=parseInt(m[1])-1;
-  const day=parseInt(m[2]);
-  let hour=parseInt(m[3]);
+/* ----- parseHeaderDate → now uses event’s own year ----- */
+function parseHeaderDate(header, yearOverride) {
+  const m = header.match(/(\d{1,2})月(\d{1,2})日.*?(\d{1,2})(?::(\d{2}))?\s*-\s*(\d{1,2})(?::(\d{2}))?/);
+  if (!m) return new Date(yearOverride || defaultYear, 11, 31);
+  const month = parseInt(m[1]) - 1;
+  const day = parseInt(m[2]);
+  let hour = parseInt(m[3]);
   const minute = m[4] ? parseInt(m[4]) : 0;
   if (hour < 12 && header.toLowerCase().includes('pm')) hour += 12;
-  return new Date(new Date().getFullYear(), month, day, hour, minute);
+  return new Date(yearOverride || defaultYear, month, day, hour, minute);
 }
-function populateMonthFilter(){
-  const sel=document.getElementById("monthFilter");
-  const months=new Set();
-  savedLists.forEach(list=>{
-    const m=list.header.match(/(\d{1,2})月/);
-    if(m) months.add(m[1]);
+
+/* ---------------------------------------------------
+   🗓 Populate Filters with yyyy-mm
+--------------------------------------------------- */
+function populateMonthFilter() {
+  const sel = document.getElementById("monthFilter");
+  const months = new Set();
+
+  savedLists.forEach(list => {
+    const m = list.header.match(/(\d{1,2})月/);
+    if (m) {
+      const year = list.year || 2025;
+      months.add(`${year}-${String(m[1]).padStart(2, '0')}`);
+    }
   });
-  const currentVal=sel.value;
-  sel.innerHTML='<option value="">All</option>';
-  [...months].sort((a,b)=>a-b).forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=m; opt.textContent=m+"月";
-    if(m===currentVal) opt.selected=true;
+
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="">All</option>';
+  [...months].sort().forEach(val => {
+    const opt = document.createElement("option");
+    opt.value = val;
+    opt.textContent = val; // yyyy-mm
+    if (val === currentVal) opt.selected = true;
     sel.appendChild(opt);
   });
 }
+
+function populateLessonMonthFilter() {
+  const sel = document.getElementById("lessonMonthFilter");
+  const months = new Set();
+
+  lessonData.forEach(l => {
+    const y = l.year || 2025;
+    months.add(`${y}-${String(l.month).padStart(2, '0')}`);
+  });
+
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All</option>';
+  [...months].sort().forEach(val => {
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = val; // yyyy-mm
+    if (val === current) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
 function populateLocationFilter(){
   const sel=document.getElementById("locationFilter");
   const locs=new Set(savedLocations);
@@ -762,6 +854,7 @@ window.addEventListener("load", renderLists);
 
 /* -------- Lesson Page -------- */
 let lessonData = JSON.parse(localStorage.getItem("lessonData") || "[]");
+ensureYearFields();
 
 // Add this function to save lesson data
 function saveLessons() {
@@ -796,20 +889,22 @@ function addLessons() {
   document.getElementById("lesson-input").value = "";
   renderLessons();
 }
-
 function renderLessons() {
+  // ✅ changed: month filter now uses yyyy-mm
   const sel = document.getElementById("lessonMonthFilter");
-  const months=[...new Set(lessonData.map(l=>l.month))].sort((a,b)=>a-b);
-  const current=sel.value;
-  sel.innerHTML='<option value="">All</option>';
-  months.forEach(m=>{
-  let o=document.createElement("option");
-  o.value=m; 
-  o.textContent=m+"月"; 
-  if(m==current) o.selected=true;
-  sel.appendChild(o);
+  const months = [...new Set(lessonData.map(l => `${l.year || 2025}-${String(l.month).padStart(2, '0')}`))].sort();
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All</option>';
+  months.forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m; // ✅ yyyy-mm
+    if (m === current) opt.selected = true;
+    sel.appendChild(opt);
   });
-  const filterMonth=sel.value;
+
+  const filterVal = sel.value;
+  const [filterYear, filterMonth] = filterVal ? filterVal.split('-').map(Number) : [null, null];
 
   const container = document.getElementById("lesson-list");
   container.innerHTML = "";
@@ -817,79 +912,77 @@ function renderLessons() {
     container.innerHTML = '<div style="color:#888">沒有課堂記錄</div>';
     return;
   }
-  
-  // Sort by date
+
+  // ✅ sort by year/month/day/time
   lessonData.sort((a, b) => {
+    if ((a.year || 2025) !== (b.year || 2025))
+      return (a.year || 2025) - (b.year || 2025);
     if (a.month !== b.month) return a.month - b.month;
     if (a.day !== b.day) return a.day - b.day;
     if (a.startHour !== b.startHour) return a.startHour - b.startHour;
     return a.startMinute - b.startMinute;
   });
-  
+
   let currentMonth = null;
+  let currentYear = null; // ✅ added
   let monthTotal = 0;
   let monthHours = 0;
-  
+
   lessonData.forEach((lesson, idx) => {
-    if(filterMonth && lesson.month != filterMonth) return;
-    if (currentMonth && currentMonth !== lesson.month) {
-      // Show summary for last month
+    // ✅ new filter logic
+    if (filterYear && lesson.year !== filterYear) return;
+    if (filterMonth && lesson.month !== filterMonth) return;
+
+    if (currentMonth && (currentMonth !== lesson.month || currentYear !== lesson.year)) {
+      // summary for previous month
       const sumDiv = document.createElement("div");
       sumDiv.className = "lesson-month-summary";
-      sumDiv.textContent =`${currentMonth}月合共：${monthHours} 小時，$${monthTotal}`;
+      sumDiv.textContent = `${currentYear}-${String(currentMonth).padStart(2, '0')} 合共：${monthHours} 小時，$${monthTotal}`;
       container.appendChild(sumDiv);
       monthTotal = 0;
       monthHours = 0;
     }
-    
+
     currentMonth = lesson.month;
-    
-    // Calculate hours if not set
+    currentYear = lesson.year || 2025;
+
+    // ✅ keep your cost/hour calculation
     if (!lesson.hours) {
-      lesson.hours = ((lesson.endHour*60+lesson.endMinute) - (lesson.startHour*60+lesson.startMinute)) / 60;
+      lesson.hours = ((lesson.endHour * 60 + lesson.endMinute) - (lesson.startHour * 60 + lesson.startMinute)) / 60;
     }
-    
-    // Calculate cost if not set
     if (!lesson.cost) {
       lesson.cost = lesson.hours * (lesson.rate || 260);
     }
-    
-    // Update month total
+
     monthTotal += lesson.cost;
     monthHours += lesson.hours;
-    
+
+    /** -------- Below part identical to your original code -------- **/
     const card = document.createElement("div");
     card.className = "lesson-card";
     card.style.display = "flex";
     card.style.gap = "12px";
 
-    // Left side - basic info
     const left = document.createElement("div");
     left.style.flex = "3";
-    
     const heading = document.createElement("div");
     heading.className = "lesson-heading";
-    heading.textContent = `${lesson.month}月${lesson.day}日 ${lesson.location}`;
+    heading.textContent = `${lesson.year || 2025}年${lesson.month}月${lesson.day}日 ${lesson.location}`;
     left.appendChild(heading);
-    
+
     const time = document.createElement("div");
     time.className = "lesson-time";
     time.textContent = `${pad(lesson.startHour)}:${pad(lesson.startMinute)} ~ ${pad(lesson.endHour)}:${pad(lesson.endMinute)}`;
     left.appendChild(time);
-    
-    // const cost = document.createElement("div");
-    // cost.className = "lesson-cost";
-    // cost.textContent = `費用: $${lesson.cost}`;
-    // left.appendChild(cost);
-    
-    // Calendar button
+
     const calBtn = document.createElement("button");
     calBtn.textContent = "Add to Calendar";
     calBtn.className = "calendar-btn";
-    calBtn.onclick = () => addToGoogleCalendarLesson(lesson.month, lesson.day, lesson.startHour, lesson.endHour, lesson.location);
+    calBtn.onclick = () => addToGoogleCalendarLesson(
+      lesson.month, lesson.day, lesson.startHour, lesson.endHour, lesson.location
+    );
     left.appendChild(calBtn);
-    
-    // Delete button
+
     const delBtn = document.createElement("button");
     delBtn.className = "lesson-btn-del";
     delBtn.textContent = "✖ 刪除";
@@ -901,21 +994,16 @@ function renderLessons() {
       }
     };
     left.appendChild(delBtn);
-    
-    card.appendChild(left);
 
-    // Right side - calculation panel
     const right = document.createElement("div");
     right.style.flex = "1";
     right.style.borderLeft = "1px dashed #aaa";
     right.style.paddingLeft = "8px";
-    
-    // Hours input
+
     const hoursLabel = document.createElement("label");
     hoursLabel.textContent = "小時:";
     hoursLabel.style.display = "block";
     hoursLabel.style.marginBottom = "5px";
-    
     const hoursInput = document.createElement("input");
     hoursInput.type = "number";
     hoursInput.min = "1";
@@ -923,27 +1011,19 @@ function renderLessons() {
     hoursInput.value = lesson.hours;
     hoursInput.style.width = "60px";
     hoursInput.style.marginBottom = "10px";
-    // hoursInput.oninput = () => {
-    //   lesson.hours = parseFloat(hoursInput.value) || 1;
-    //   lesson.cost = lesson.hours * (lesson.rate || 260);
-    //   saveLessons();
-    //   renderLessons(); // Re-render to update the display
-    // };
     hoursInput.onchange = () => {
       lesson.hours = parseFloat(hoursInput.value) || 1;
       lesson.cost = lesson.hours * (lesson.rate || 260);
-      saveLessons(); // 失焦才存
+      saveLessons();
       costDisplay.textContent = `總計: $${lesson.cost}`;
     };
     hoursLabel.appendChild(hoursInput);
     right.appendChild(hoursLabel);
-    
-    // Rate input
+
     const rateLabel = document.createElement("label");
     rateLabel.textContent = "單價:";
     rateLabel.style.display = "block";
     rateLabel.style.marginBottom = "5px";
-    
     const rateInput = document.createElement("input");
     rateInput.type = "number";
     rateInput.min = "1";
@@ -954,37 +1034,30 @@ function renderLessons() {
       lesson.rate = parseInt(rateInput.value) || 260;
       lesson.cost = lesson.hours * lesson.rate;
       saveLessons();
-      costDisplay.textContent = `總計: $${lesson.cost}`; // ✅ 只更新這一筆
+      costDisplay.textContent = `總計: $${lesson.cost}`;
     };
-    //     rateInput.oninput = () => {
-    //   lesson.rate = parseInt(rateInput.value) || 260;
-    //   lesson.cost = lesson.hours * lesson.rate;
-    //   saveLessons();
-    //   costDisplay.textContent = `總計: $${lesson.cost}`; // ✅ 只更新這一筆
-    // };
-    
     rateLabel.appendChild(rateInput);
     right.appendChild(rateLabel);
-    
-    // Cost display
+
     const costDisplay = document.createElement("div");
     costDisplay.textContent = `總計: $${lesson.cost}`;
     costDisplay.style.fontWeight = "bold";
     costDisplay.style.marginTop = "10px";
     right.appendChild(costDisplay);
-    
+
+    card.appendChild(left);
     card.appendChild(right);
     container.appendChild(card);
   });
-  
-  // Last month summary
+
+  // ✅ finalize summary
   if (currentMonth) {
     const sumDiv = document.createElement("div");
     sumDiv.className = "lesson-month-summary";
-    sumDiv.textContent = `${currentMonth}月合共：${monthHours} 小時，$${monthTotal}`;
-  container.appendChild(sumDiv);
+    sumDiv.textContent = `${currentYear}-${String(currentMonth).padStart(2, '0')} 合共：${monthHours} 小時，$${monthTotal}`;
+    container.appendChild(sumDiv);
   }
-}
+} 
 
 function pad(n) { return n < 10 ? "0"+n : n; }
 
@@ -1028,6 +1101,14 @@ function importLessonsPrompt(){
   }catch(err){
     alert("⚠️ Error:"+err);
   }
+}
+function isRangeDay(d1,day7, today) {
+  console.log('d1',d1,'day7',day7,'today',today)
+    console.log(d1 > day7 , d1 <today)
+    if ((d1 > day7 )&&(d1 <today)){
+      return true;
+    } 
+
 }
 
 function isSameDay(d1, d2) {
@@ -1080,113 +1161,112 @@ function parseExtraText(text) {
     court,
   };
 }
-
-function exportWhatsApp(){
-  // 過濾，只取將來的場
-  // let hashTag ='';
-  let hashArray = [];
+function exportWhatsApp() {
+  // ✅ same future filter, but now year‑aware
   const now = new Date();
-  const futureEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now);
-  const happyEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now && list.header.includes('快樂'));
+  const futureEvents = savedLists.filter(list => parseHeaderDate(list.header, list.year) >= now);
+  const happyEvents = savedLists.filter(
+    list => parseHeaderDate(list.header, list.year) >= now && list.header.includes("快樂")
+  );
 
-
-  if (!futureEvents.length){
+  if (!futureEvents.length) {
     alert("⚠️ 沒有未來的場次");
     return;
   }
 
-  // 根據日期排序
-  futureEvents.sort((a,b) => parseHeaderDate(a.header) - parseHeaderDate(b.header));
+  // ✅ sort chronologically by correct year + month + day
+  futureEvents.sort(
+    (a, b) => parseHeaderDate(a.header, a.year) - parseHeaderDate(b.header, b.year)
+  );
 
+  // ✅ header block
   let text = "🔥🔥今明天有位🔥🔥\n ——  #沙田區  🏸 ——\n";
   text += " 🌱🌱 *近初-初級* 雙打 🌱🌱\n\n";
 
-  let happyText =''
-  if (happyEvents.length){
-    happyText += " --------------------\n"; 
-    happyText += "🌱🌱 *快樂-近初* 雙打🌱🌱\n"
+  // ✅ “快樂” section
+  let happyText = "";
+  if (happyEvents.length) {
+    happyText += " --------------------\n"; // same separator you referenced
+    happyText += "🌱🌱 *快樂-近初* 雙打🌱🌱\n";
     happyText += " --------------------\n";
   }
 
   let currentDay = "";
   let currentHappyDay = "";
-  futureEvents.forEach(list=>{
-    const d = parseHeaderDate(list.header);
-    console.log('d',d);
+  const hashArray = [];
 
-    const dateStr = `*${d.getMonth()+1}月${d.getDate()}日(${["日","一","二","三","四","五","六"][d.getDay()]})*`;
-    
+  futureEvents.forEach(list => {
+    const d = parseHeaderDate(list.header, list.year);
+    const dateStr = `*${d.getMonth() + 1}月${d.getDate()}日(${["日","一","二","三","四","五","六"][d.getDay()]})*`;
 
-    console.log('dateStr',dateStr);
-    // Get the day of the month (1-31) and format it to two digits
-    const day = d.getDate().toString().padStart(2, '0');
+    // yyyy-mm-dd components for hashtag
+    const day = d.getDate().toString().padStart(2, "0");
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const yearShort = String(list.year || 2025).slice(2); // 25 or 26 etc.
+    const mmdd = `#${yearShort}${month}${day}\n`;
+    if (!hashArray.includes(mmdd)) hashArray.push(mmdd);
 
-    // Get the month (0-11, so add 1) and format it to two digits
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    
-    // hashTag +=  `#25${month}${day}\n`;
-    const mmdd = `#25${month}${day}\n`
-    if (!hashArray.includes(mmdd)){
-      hashArray.push(mmdd)
-    }
-    //check if repeated date
-    if(list.header.includes('快樂')){
-      if(dateStr !== currentHappyDay){ 
-        happyText +=`\n${dateStr}\n`;  
+    // group daily lines
+    if (list.header.includes("快樂")) {
+      if (dateStr !== currentHappyDay) {
+        happyText += `\n${dateStr}\n`;
         currentHappyDay = dateStr;
       }
-    }else{
-      if(dateStr !== currentDay){ 
-          text += `\n${dateStr}\n`;  
-          currentDay = dateStr;
+    } else {
+      if (dateStr !== currentDay) {
+        text += `\n${dateStr}\n`;
+        currentDay = dateStr;
       }
     }
-    // 抓時間、地點、價錢
-    const timeMatch = list.header.match(/(\d{1,2})(?::?(\d{2}))?\s*[-~]\s*(\d{1,2})(?::?(\d{2}))?/);
+
+    // 抓時間、地點、價錢 (same as before)
+    const timeMatch = list.header.match(
+      /(\d{1,2})(?::?(\d{2}))?\s*[-~]\s*(\d{1,2})(?::?(\d{2}))?/
+    );
     let timeStr = "";
-    if(timeMatch){
-      let sh = parseInt(timeMatch[1]), eh = parseInt(timeMatch[3]);
+    if (timeMatch) {
+      const sh = parseInt(timeMatch[1]),
+        eh = parseInt(timeMatch[3]);
       timeStr = `${sh}-${eh} `;
     }
-    let loc = list.header.replace(/\d{1,2}月\d{1,2}日/,"")
-                         .replace(/\d{1,2}[:：]?\d{0,2}\s*[-~]\s*\d{1,2}[:：]?\d{0,2}/,"")
-                         .replace(/\$?\d+/,"") 
-                          .replace(/🈶🈶/, "")
-                          .replace(/【[^】]*號場】/g,"") 
-                         .trim();
-    if (loc.includes('pm')){ 
-      loc = 'pm'+loc.split('pm')[1]
-    }
-    if (loc.includes('am')){
-      loc = 'am'+loc.split('am')[1]
-    }
-     if (loc.includes('$')){
-      loc = loc.split('$')[0]
+
+    let loc = list.header
+      .replace(/\d{1,2}月\d{1,2}日/, "")
+      .replace(/\d{1,2}[:：]?\d{0,2}\s*[-~]\s*\d{1,2}[:：]?\d{0,2}/, "")
+      .replace(/\$?\d+/, "")
+      .replace(/🈶🈶/, "")
+      .replace(/【[^】]*號場】/g, "")
+      .trim();
+
+    if (loc.includes("pm")) loc = "pm" + loc.split("pm")[1];
+    if (loc.includes("am")) loc = "am" + loc.split("am")[1];
+    if (loc.includes("$")) loc = loc.split("$")[0];
+
+    if (loc.includes("會所")) {
+      loc = loc.replace(/會所/, "圓洲角附近會所");
+    } else {
+      loc = loc.trim() + "體育館";
     }
 
-    if (loc.includes('會所')){
-      loc = loc.replace(/會所/,'圓洲角附近會所') 
-    }else{
-      loc = loc.trim() +'體育館'
-    }
-    let priceMatch = list.header.match(/\$ ?(\d+)/);
-    let price = priceMatch ? "$"+priceMatch[1] : "";
-    
-    if (!list.header.includes('快樂')){ 
+    const priceMatch = list.header.match(/\$ ?(\d+)/);
+    const price = priceMatch ? "$" + priceMatch[1] : "";
+
+    // append to section
+    if (!list.header.includes("快樂")) {
       text += `${timeStr}${loc} ${price}\n`;
-    }
-    else{
-       happyText += `${timeStr}${loc} ${price}\n`;
+    } else {
+      happyText += `${timeStr}${loc} ${price}\n`;
     }
   });
 
+  // 🏸 footnotes remain identical
   text += `
 以上用球：RSL Supreme/ Classic
 `;
-  if (happyEvents.length){
-    happyText +=`\n以上用球：RSL 6/ classic`
+  if (happyEvents.length) {
+    happyText += `\n以上用球：RSL 6/ classic`;
   }
- 
+
   text += `  ${happyText}
 ----------------------------
 人數：  平日5時前6人, 其他7人 （已包括場主）
@@ -1207,52 +1287,59 @@ ${hashArray.join(" ")}
 
 ⭐⭐另外有快樂場 歡迎pm 查問`;
 
-  // 複製到剪貼簿
-  navigator.clipboard.writeText(text).then(()=>{
-    alert("✅ 已複製 WhatsApp 場次文字，可以直接貼上！");
-  }).catch(err=>{
-    alert("⚠️ 複製失敗: "+err);
-  });
+  // ✅ clipboard copy (unchanged)
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      alert("✅ 已複製 WhatsApp 場次文字，可以直接貼上！");
+    })
+    .catch(err => {
+      alert("⚠️ 複製失敗: " + err);
+    });
 }
 
- function exportWhatsAppD() {
+function exportWhatsAppD() {
   const now = new Date();
-  const futureEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now);
+
+  // ✅ only current year's future events
+  const futureEvents = savedLists.filter(
+    list =>
+      (list.year) === defaultYear &&
+      parseHeaderDate(list.header, list.year) >= now
+  );
 
   if (!futureEvents.length) {
     alert("⚠️ 沒有未來的場次");
     return;
   }
 
-  // 按日期排序
-  futureEvents.sort((a, b) => parseHeaderDate(a.header) - parseHeaderDate(b.header));
+  // 按日期排序 (year‑aware)
+  futureEvents.sort(
+    (a, b) => parseHeaderDate(a.header, a.year) - parseHeaderDate(b.header, b.year)
+  );
 
   // 開頭樣式
   let text = "🏸🏸初級雙打🏸🏸\n\n";
-
   const hashArray = [];
   const weekDay = ["日", "一", "二", "三", "四", "五", "六"];
 
   futureEvents.forEach(list => {
-    const d = parseHeaderDate(list.header);
-    const y = d.getFullYear().toString().slice(2);
+    const d = parseHeaderDate(list.header, list.year);
+    const y = String(list.year || 2025).slice(2);
     const m = d.getMonth() + 1;
     const day = d.getDate();
     const weekday = weekDay[d.getDay()];
     const mmdd = `#${y}${String(m).padStart(2, "0")}${String(day).padStart(2, "0")}`;
 
-    // 時間：抓 "9-11pm" or "6-8am"
-    const timeMatch = list.header.match(/(\d{1,2})(?::?(\d{2}))?\s*[-~]\s*(\d{1,2})(?::?(\d{2}))?/);
+    // 時間
+    const timeMatch = list.header.match(
+      /(\d{1,2})(?::?(\d{2}))?\s*[-~]\s*(\d{1,2})(?::?(\d{2}))?/);
     let timeStr = "";
     if (timeMatch) {
       const sh = parseInt(timeMatch[1]), eh = parseInt(timeMatch[3]);
-      if (/pm/i.test(list.header)) {
-        timeStr = `${sh}-${eh}pm`;
-      } else if (/am/i.test(list.header)) {
-        timeStr = `${sh}-${eh}am`;
-      } else {
-        timeStr = `${sh}-${eh}`;
-      }
+      if (/pm/i.test(list.header)) timeStr = `${sh}-${eh}pm`;
+      else if (/am/i.test(list.header)) timeStr = `${sh}-${eh}am`;
+      else timeStr = `${sh}-${eh}`;
     }
 
     // 地點清理
@@ -1264,23 +1351,16 @@ ${hashArray.join(" ")}
       .replace(/【[^】]*號場】/g, "")
       .trim();
 
-    // 清理 am/pm 重覆區段
     if (loc.includes("pm")) loc = loc.split("pm")[1];
     if (loc.includes("am")) loc = loc.split("am")[1];
     if (loc.includes("$")) loc = loc.split("$")[0];
-
-    // 加上體育館 or 會所顯示
-    if (loc.includes("會所")) {
-      loc = "圓洲角附近會所";
-    } else {
-      loc = (loc.trim().length ? loc.trim() : "圓洲角") + "體育館";
-    }
+    if (loc.includes("會所")) loc = "圓洲角附近會所";
+    else loc = (loc.trim().length ? loc.trim() : "圓洲角") + "體育館";
 
     // 費用
     const priceMatch = list.header.match(/\$ ?(\d+)/);
     const price = priceMatch ? "$" + priceMatch[1] : "";
 
-    // 組合模板
     text += `日期： ${m}月${day}日(${weekday})\n`;
     text += `時間： ${timeStr}\n`;
     text += `地點： ${loc}\n`;
@@ -1307,126 +1387,116 @@ ${hashArray.join(" ")}
 🙏快樂初/近初者優先
 `;
 
-  navigator.clipboard.writeText(text)
+  navigator.clipboard
+    .writeText(text)
     .then(() => alert("✅ 已複製 WhatsApp 場次文字，可以直接貼上！"))
     .catch(err => alert("⚠️ 複製失敗: " + err));
 }
-
-function exportfacebook(){
-  // 過濾，只取將來的場
-  // let hashTag ='';
-  let hashArray = [];
+function exportfacebook() {
   const now = new Date();
-  const futureEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now );
-  const happyEvents = savedLists.filter(list => parseHeaderDate(list.header) >= now && list.header.includes('快樂'));
 
-  if (!futureEvents.length){
+  // ✅ only current year's future sessions
+  const futureEvents = savedLists.filter(
+    list =>
+      (list.year || 2025) === defaultYear &&
+      parseHeaderDate(list.header, list.year) >= now
+  );
+  const happyEvents = savedLists.filter(
+    list =>
+      (list.year || 2025) === defaultYear &&
+      parseHeaderDate(list.header, list.year) >= now &&
+      list.header.includes("快樂")
+  );
+
+  if (!futureEvents.length) {
     alert("⚠️ 沒有未來的場次");
     return;
   }
-  
-  var dd = String(now.getDate()).padStart(2, '0');
-  var mm = String(now.getMonth() + 1).padStart(2, '0'); //January is 0!
-  var yyyy = now.getFullYear();
-  var hr = String(now.getHours()).padStart(2, '0');
-  const version= 'VER'+yyyy+mm+dd+hr;
 
-  // 根據日期排序
-  futureEvents.sort((a,b) => parseHeaderDate(a.header) - parseHeaderDate(b.header));
+  // 版本戳
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const yyyy = now.getFullYear();
+  const hr = String(now.getHours()).padStart(2, "0");
+  const version = "VER" + yyyy + mm + dd + hr;
+
+  // 日期排序
+  futureEvents.sort(
+    (a, b) => parseHeaderDate(a.header, a.year) - parseHeaderDate(b.header, b.year)
+  );
 
   let text = ".\n 🔥🔥今明天有位🔥🔥\n ——  #沙田區  🏸 ——\n";
-    text += " ～～～～～～～～～～～\n"; 
-    text += "☘️☘️ 近初 -初級 🏸☘️☘️\n"
-    text += " ～～～～～～～～～～～\n";
+  text += " ～～～～～～～～～～～\n";
+  text += "☘️☘️ 近初 -初級 🏸☘️☘️\n";
+  text += " ～～～～～～～～～～～\n";
 
-  let happyText =''
-  if (happyEvents.length){
-    happyText += " ～～～～～～～～～～～\n"; 
-    happyText += "☘️☘️ 快樂-近初🏸☘️☘️\n"
+  let happyText = "";
+  if (happyEvents.length) {
+    happyText += " ～～～～～～～～～～～\n";
+    happyText += "☘️☘️ 快樂-近初🏸☘️☘️\n";
     happyText += " ～～～～～～～～～～～\n";
   }
 
-  console.log('futureEvents',futureEvents)
-  console.log('happyText',happyText)
+  const hashArray = [];
   let currentDay = "";
   let currentHappyDay = "";
-  futureEvents.forEach(list=>{
-    const d = parseHeaderDate(list.header);
-    
-    const dateStr = `${d.getMonth()+1}月${d.getDate()}日(${["日","一","二","三","四","五","六"][d.getDay()]})`;
-    
 
-    // Get the day of the month (1-31) and format it to two digits
-    const day = d.getDate().toString().padStart(2, '0');
+  futureEvents.forEach(list => {
+    const d = parseHeaderDate(list.header, list.year);
+    const dateStr = `${d.getMonth() + 1}月${d.getDate()}日(${["日","一","二","三","四","五","六"][d.getDay()]})`;
 
-    // Get the month (0-11, so add 1) and format it to two digits
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    
-    // hashTag +=  `#25${month}${day}\n`;
-    const mmdd = `#25${month}${day}\n`
-    if (!hashArray.includes(mmdd)){
-      hashArray.push(mmdd)
-    }
-    //check if repeated date
-    if(list.header.includes('快樂')){
-      if(dateStr !== currentHappyDay){ 
-        happyText +=`\n${dateStr}\n`;  
+    const day = d.getDate().toString().padStart(2, "0");
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const yearShort = String(list.year || 2025).slice(2);
+    const mmdd = `#${yearShort}${month}${day}\n`;
+    if (!hashArray.includes(mmdd)) hashArray.push(mmdd);
+
+    if (list.header.includes("快樂")) {
+      if (dateStr !== currentHappyDay) {
+        happyText += `\n${dateStr}\n`;
         currentHappyDay = dateStr;
       }
-    }else{
-      if(dateStr !== currentDay){ 
-          text += `\n${dateStr}\n`;  
-          currentDay = dateStr;
+    } else {
+      if (dateStr !== currentDay) {
+        text += `\n${dateStr}\n`;
+        currentDay = dateStr;
       }
     }
-    
-    // 抓時間、地點、價錢
+
     const timeMatch = list.header.match(/(\d{1,2})(?::?(\d{2}))?\s*[-~]\s*(\d{1,2})(?::?(\d{2}))?/);
     let timeStr = "";
-    if(timeMatch){
-      let sh = parseInt(timeMatch[1]), eh = parseInt(timeMatch[3]);
+    if (timeMatch) {
+      const sh = parseInt(timeMatch[1]), eh = parseInt(timeMatch[3]);
       timeStr = `${sh}-${eh} `;
     }
-    let loc = list.header.replace(/\d{1,2}月\d{1,2}日/,"")
-                         .replace(/\d{1,2}[:：]?\d{0,2}\s*[-~]\s*\d{1,2}[:：]?\d{0,2}/,"")
-                         .replace(/\$?\d+/,"") 
-                          .replace(/🈶🈶/, "") 
-                          .replace(/【[^】]*號場】/g,"") 
-                         .trim();
-    if (loc.includes('pm')){ 
-      loc = 'pm'+loc.split('pm')[1]
-    }
-    if (loc.includes('am')){
-      loc = 'am'+loc.split('am')[1]
-    }
-     if (loc.includes('$')){
-      loc = loc.split('$')[0]
-    }
-    if (loc.includes('會所')){
-      loc = loc.replace(/會所/,'圓洲角附近會所') 
-    }else{
-      loc = loc.trim() +'體育館'
-    }
-    let priceMatch = list.header.match(/\$ ?(\d+)/);
-    let price = priceMatch ? "$"+priceMatch[1] : ""; 
-    if (!list.header.includes('快樂')){ 
-      text += `${timeStr}${loc} ${price}\n`;
-    }
-    else{
-       happyText += `${timeStr}${loc} ${price}\n`;
-    }
 
+    let loc = list.header
+      .replace(/\d{1,2}月\d{1,2}日/, "")
+      .replace(/\d{1,2}[:：]?\d{0,2}\s*[-~]\s*\d{1,2}[:：]?\d{0,2}/, "")
+      .replace(/\$?\d+/, "")
+      .replace(/🈶🈶/, "")
+      .replace(/【[^】]*號場】/g, "")
+      .trim();
+
+    if (loc.includes("pm")) loc = "pm" + loc.split("pm")[1];
+    if (loc.includes("am")) loc = "am" + loc.split("am")[1];
+    if (loc.includes("$")) loc = loc.split("$")[0];
+    if (loc.includes("會所")) loc = loc.replace(/會所/, "圓洲角附近會所");
+    else loc = loc.trim() + "體育館";
+
+    const priceMatch = list.header.match(/\$ ?(\d+)/);
+    const price = priceMatch ? "$" + priceMatch[1] : "";
+
+    if (!list.header.includes("快樂")) text += `${timeStr}${loc} ${price}\n`;
+    else happyText += `${timeStr}${loc} ${price}\n`;
   });
 
   text += `
 以上用球：RSL Supreme/ classic
 `;
 
-  if (happyEvents.length){
-    happyText +=`\n以上用球：RSL 6/ classic`
-  }
+  if (happyEvents.length) happyText += `\n以上用球：RSL 6/ classic`;
 
-  console.log('happyText',happyText)
   text += `  ${happyText}
 
 ----------------------------
@@ -1436,25 +1506,60 @@ function exportfacebook(){
 
 #雙打羽毛球
 
-報名:https://wa.me/85261280075?text=我想報名___星期
+報名:https://wa.me/85296630647?text=我想報名___星期
 
 ${hashArray.join("")}
 ${version}
 
-• 📌猜波請用舊波
+• 📌搓波請用舊波
 • 📌第一次報名需預繳👈👈
-• 📌顯徑/ 恒安主場無冷氣,其他都有
+• 📌顯徑/恒安主場無冷氣,其他都有
 • 📌如報名者未能出席，請在開波48小時前通知場主取消，否則須繳付本次活動的費用。
 
 ⭐⭐另外有快樂場 歡迎pm 查問`;
 
-  // 複製到剪貼簿
-  navigator.clipboard.writeText(text).then(()=>{
-    alert("✅ 已複製 Faceboook 場次文字，可以直接貼上！");
-  }).catch(err=>{
-    alert("⚠️ 複製失敗: "+err);
-  });
+  navigator.clipboard
+    .writeText(text)
+    .then(() => alert("✅ 已複製 Facebook 場次文字，可以直接貼上！"))
+    .catch(err => alert("⚠️ 複製失敗: " + err));
 }
+
+/* ---------------------------------------------------
+   🆕 Example: new events/lessons should use defaultYear
+--------------------------------------------------- */
+function addList() {
+  const input = document.getElementById("inputText").value.trim();
+  if (!input) return;
+  const blocks = input.split(/\n\s*\n/);
+  blocks.forEach(block => {
+    const lines = block.split(/\r?\n/).filter(l => l.trim() !== "");
+    const firstNumIndex = lines.findIndex(line => /^\s*1[\.\s]/.test(line));
+    if (firstNumIndex === -1) return;
+    const header = lines.slice(0, firstNumIndex).join(" ");
+    const items = lines.slice(firstNumIndex).map(line => {
+      const match = line.match(/^\s*(\d+[\.\s]*)?(.+)$/);
+      return { text: match ? match[2].trim() : "", payment: false, arrive: false, remark: "", categories: {} };
+    });
+    savedLists.push({ year: defaultYear, header, items });
+  });
+  save();
+  renderLists();
+}
+
+function addLessons() {
+  const input = document.getElementById("lesson-input").value.trim();
+  if (!input) return;
+  const parsed = parseExtraText(input);
+  if (!parsed.day) return;
+  const hours = ((parsed.endHour * 60 + parsed.endMinute) - (parsed.startHour * 60 + parsed.startMinute)) / 60;
+  const rate = 260;
+  const cost = hours * rate;
+  lessonData.push({ ...parsed, year: defaultYear, hours, rate, cost });
+  saveLessons();
+  renderLessons();
+}
+
+
 
 // ---- Add new Calendar page logic ----
 function showPage(page){
@@ -1465,131 +1570,173 @@ function showPage(page){
   else if(page==="fb"){document.querySelector(".tab:nth-child(3)").classList.add("active");document.getElementById("fb-page").classList.add("active");}
   else if(page==="calendar"){document.querySelector(".tab:nth-child(4)").classList.add("active");document.getElementById("calendar-page").classList.add("active");initCalendar();}
 }
+ // ---- Calendar Rendering (updated with yyyy-mm filter) ----
+function initCalendar() {
+  const sel = document.getElementById("calendar-month-select");
+  sel.innerHTML = "";
 
-// ---- Calendar Rendering ----
-function initCalendar(){
-  const sel=document.getElementById("calendar-month-select");
-  sel.innerHTML="";
-  // Collect all unique months from both lessonData + savedLists
-  const months=new Set();
-  savedLists.forEach(l=>{
-    const dm=l.header.match(/(\d{1,2})月/);
-    if(dm) months.add(parseInt(dm[1]));
+  // Collect all unique yyyy‑mm pairs from both event + lesson data
+  const months = new Set();
+  savedLists.forEach(ev => {
+    const dt = parseHeaderDate(ev.header, ev.year);
+    if (!isNaN(dt)) {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, "0");
+      months.add(`${y}-${m}`);
+    }
   });
-  lessonData.forEach(l=>months.add(l.month));
-  const arr=[...months].sort((a,b)=>a-b);
-  const nowM=new Date().getMonth()+1;
-  arr.forEach(m=>{
-    const opt=document.createElement("option");
-    opt.value=m;
-    opt.textContent=m+"月";
-    if(m==nowM) opt.selected=true;
+  lessonData.forEach(ls => {
+    const y = ls.year || defaultYear;
+    const m = String(ls.month).padStart(2, "0");
+    months.add(`${y}-${m}`);
+  });
+
+  // Sort chronologically
+  const arr = [...months].sort();
+  const currentYM = new Date().toISOString().slice(0, 7);
+
+  arr.forEach(ym => {
+    const opt = document.createElement("option");
+    opt.value = ym;
+    opt.textContent = ym; // yyyy‑mm
+    if (ym === currentYM) opt.selected = true;
     sel.appendChild(opt);
   });
+
   renderCalendar();
 }
 
-
 let lessonVisible = true;
 let eventVisible = true;
-function showEvent(){  eventVisible=!eventVisible; renderCalendar( ); }
-function showLesson(){ lessonVisible=!lessonVisible; renderCalendar(); }
-function renderCalendar(){
-  let currentMonth = null;
+function showEvent() { eventVisible = !eventVisible; renderCalendar(); }
+function showLesson() { lessonVisible = !lessonVisible; renderCalendar(); }
+
+function renderCalendar() {
+  const container = document.getElementById("calendar-container");
+  container.innerHTML = "";
+
+  const ym = document.getElementById("calendar-month-select").value;
+  if (!ym) {
+    container.textContent = "請選擇月份";
+    return;
+  }
+
+  const [year, month] = ym.split("-").map(Number);
+
   let eventMonthNet = 0;
   let lessonMonthTotal = 0;
   let lessonMonthHours = 0;
-  const month=parseInt(document.getElementById("calendar-month-select").value);
-  const container=document.getElementById("calendar-container");
-  container.innerHTML="";
-  if(!month){container.textContent="請選擇月份";return;}
-  const year=new Date().getFullYear();
-  const first=new Date(year,month-1,1);
-  const firstDay=first.getDay(); // 0-6
-  const daysInMonth=new Date(year,month,0).getDate();
-  // grid
-  const table=document.createElement("table");
-  table.style.width="100%";
-  table.style.borderCollapse="collapse";
-  table.innerHTML="<thead><tr style='background:#ddd;text-align:center;'><th>日</th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th></tr></thead>";
-  const tbody=document.createElement("tbody");
-  let row=document.createElement("tr");
-  for(let i=0;i<firstDay;i++) row.appendChild(document.createElement("td"));
-  for(let d=1;d<=daysInMonth;d++){
-    const td=document.createElement("td");
-    td.style.verticalAlign="top";
-    td.style.height="100px";
-    td.style.border="1px solid #ccc";
-    td.style.padding="4px";
-    td.innerHTML=`<div style='font-weight:bold;'>${d}</div>`;
-    // ---- event summary ----
 
-    if (eventVisible){
-      const evHere=savedLists.filter(ev=>{
-        const parsed=parseHeaderDate(ev.header);
-        return parsed.getMonth()+1===month && parsed.getDate()===d;
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  const table = document.createElement("table");
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+  table.innerHTML =
+    "<thead><tr style='background:#ddd;text-align:center;'><th>日</th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th></tr></thead>";
+
+  const tbody = document.createElement("tbody");
+  let row = document.createElement("tr");
+  for (let i = 0; i < firstDay; i++) row.appendChild(document.createElement("td"));
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const td = document.createElement("td");
+    td.style.verticalAlign = "top";
+    td.style.height = "100px";
+    td.style.border = "1px solid #ccc";
+    td.style.padding = "4px";
+    td.innerHTML = `<div style='font-weight:bold;'>${d}</div>`;
+
+    // ---- Event cells ----
+    if (eventVisible) {
+      const evHere = savedLists.filter(ev => {
+        const dt = parseHeaderDate(ev.header, ev.year);
+        if (isNaN(dt)) return false;
+        return (
+          dt.getFullYear() === year &&
+          dt.getMonth() + 1 === month &&
+          dt.getDate() === d
+        );
       });
-      evHere.forEach(ev=>{ 
-        const div=document.createElement("div");   
-        div.textContent= ev.header.replace(/🈶🈶/,'').replace(/🈵🈵/,'').replace(/\d{1,2}月\d{1,2}日/,"").split("）")[1]; 
-        if (!div.textContent ){ 
-            div.textContent= ev.header.replace(/🈶🈶/,'').replace(/🈵🈵/,'').replace(/\d{1,2}月\d{1,2}日/,"").split(")")[1];
-        }  
-        div.textContent="🏸"+  div.textContent
-        div.textContent=div.textContent.split("$")[0]
-        // div.textContent= "🏸"+ev.header;
-        div.title=ev.header;
-        div.style.background="#d1ecf1";
-        div.style.borderRadius="3px";
-        div.style.margin="2px 0";
-        div.style.fontSize="0.8em";
-        div.style.padding="1px 3px";
+
+      evHere.forEach(ev => {
+        const div = document.createElement("div");
+        div.textContent = ev.header
+          .replace(/🈶🈶|🈵🈵/, "")
+          .replace(/\d{1,2}月\d{1,2}日/, "")
+          .split("）")[1] || ev.header.split(")")[1] || ev.header;
+        div.textContent = "🏸" + (div.textContent || "").split("$")[0];
+        div.title = ev.header;
+        div.style.background = "#d1ecf1";
+        div.style.borderRadius = "3px";
+        div.style.margin = "2px 0";
+        div.style.fontSize = "0.8em";
+        div.style.padding = "1px 3px";
         td.appendChild(div);
-        eventMonthNet += ev.net;
+        eventMonthNet += ev.net || 0;
       });
     }
-    if (lessonVisible){ 
-  
-      // ---- lesson summary ----
-      const lessonsHere=lessonData.filter(l=>l.month===month && l.day===d);
-      lessonsHere.forEach(ls=>{
-        const div=document.createElement("div");
-        div.textContent="📚" + pad(ls.startHour) +"-"+ pad(ls.endHour)+ ls.location.split("上堂")[0];
-        div.textContent= div.textContent.replace(/體育館/,'') +'上堂'
-        div.title=`${ls.month}月${ls.day}日 ${ls.location} ${pad(ls.startHour)}:${pad(ls.startMinute)}-${pad(ls.endHour)}:${pad(ls.endMinute)} ($${ls.cost})`;
-        div.style.background="greenyellow";
-        div.style.borderRadius="3px";
-        div.style.margin="2px 0";
-        div.style.fontSize="0.8em";
-        div.style.padding="1px 3px";
+
+    // ---- Lesson cells ----
+    if (lessonVisible) {
+      const lessonsHere = lessonData.filter(
+        ls => ls.year === year && ls.month === month && ls.day === d
+      );
+
+      lessonsHere.forEach(ls => {
+        const div = document.createElement("div");
+        const start = pad(ls.startHour);
+        const end = pad(ls.endHour);
+        const locShort = (ls.location || "").split("上堂")[0].replace(/體育館/, "");
+        div.textContent = `📚${start}-${end}${locShort}上堂`;
+        div.title = `${ls.month}月${ls.day}日 ${ls.location} ${start}:${pad(
+          ls.startMinute
+        )}-${end}:${pad(ls.endMinute)} ($${ls.cost})`;
+        div.style.background = "greenyellow";
+        div.style.borderRadius = "3px";
+        div.style.margin = "2px 0";
+        div.style.fontSize = "0.8em";
+        div.style.padding = "1px 3px";
         td.appendChild(div);
 
-         // Update month total
-          lessonMonthTotal += ls.cost;
-          lessonMonthHours += ls.hours;
-      
+        lessonMonthTotal += ls.cost || 0;
+        lessonMonthHours += ls.hours || 0;
       });
     }
+
     row.appendChild(td);
-    if((d+firstDay)%7===0){tbody.appendChild(row);row=document.createElement("tr");}
+    if ((d + firstDay) % 7 === 0) {
+      tbody.appendChild(row);
+      row = document.createElement("tr");
+    }
   }
-  if(row.children.length) while(row.children.length<7) row.appendChild(document.createElement("td")),tbody.appendChild(row);
 
-  //event summary
-  const sumEventDiv=document.createElement("div");
-  sumEventDiv.className="month-summary";
-  sumEventDiv.textContent=`${month}月 總淨利: 💰${eventMonthNet}`;
- 
-  //lesson summary
+  if (row.children.length)
+    while (row.children.length < 7)
+      row.appendChild(document.createElement("td"));
+  tbody.appendChild(row);
+
+  table.appendChild(tbody);
+
+  // ---- summaries ----
+  const sumEventDiv = document.createElement("div");
+  sumEventDiv.className = "month-summary";
+  sumEventDiv.textContent = `${year}-${String(month).padStart(
+    2,
+    "0"
+  )} 總淨利: 💰${eventMonthNet}`;
+
   const sumLessonDiv = document.createElement("div");
   sumLessonDiv.className = "lesson-month-summary";
-  sumLessonDiv.textContent = `${month}月合共：${lessonMonthHours} 小時，$${lessonMonthTotal}`;
- 
-  table.appendChild(tbody);
+  sumLessonDiv.textContent = `${year}-${String(month).padStart(
+    2,
+    "0"
+  )} 合共：${lessonMonthHours} 小時，$${lessonMonthTotal}`;
+
   container.appendChild(table);
   container.appendChild(sumEventDiv);
   container.appendChild(sumLessonDiv);
-  
 }
 </script>
 </body>
